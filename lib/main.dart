@@ -1,16 +1,16 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:kealthy_delivery/Pages/Cod_page.dart/COD.dart';
-import 'package:kealthy_delivery/Pages/Login/SplashScreen.dart';
-import 'package:kealthy_delivery/Services/Database_Listener.dart';
-import 'package:kealthy_delivery/Services/Location_exit.dart';
+import 'Pages/Cod_page.dart/COD.dart';
+import 'Pages/Login/SplashScreen.dart';
+import 'Services/Database_Listener.dart';
 import 'Services/Location_Permission.dart';
 import 'Riverpod/Request_Overlay.dart';
+import 'Services/Location_exit.dart';
 import 'Services/background_service.dart';
 import 'Services/fcm.dart';
 import 'Services/location_updater.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -23,29 +23,38 @@ void main() async {
   listenForOrderAssignments.listenForOrderAssignments();
   DatabaseListener().listenForOrderStatusChanges();
   final overlayService = RequestOverlay();
-  // ignore: non_constant_identifier_names
   final LocationpermissionService = LocationPermissionService();
   final isPermissionGranted =
       await LocationpermissionService.requestPermissions();
 
   if (!isPermissionGranted) {
-    SystemNavigator.pop();
+    Fluttertoast.showToast(
+      msg: "Location permission is required to continue.",
+      toastLength: Toast.LENGTH_LONG,
+      gravity: ToastGravity.BOTTOM,
+    );
     return;
   }
+
   final isOverlayGranted = await overlayService.requestOverlay();
   if (!isOverlayGranted) {
-    SystemNavigator.pop();
-  } else {
-    final container = ProviderContainer();
-    try {
-      container.read(paymentProvider);
-
-      print("Data prefetched successfully.");
-    } catch (e) {
-      print("Error prefetching addresses: $e");
-    }
-    runApp(const ProviderScope(child: MyApp()));
+    Fluttertoast.showToast(
+      msg: "Overlay permission is required to continue.",
+      toastLength: Toast.LENGTH_LONG,
+      gravity: ToastGravity.BOTTOM,
+    );
+    return;
   }
+
+  final container = ProviderContainer();
+  try {
+    container.read(paymentProvider);
+    print("Data prefetched successfully.");
+  } catch (e) {
+    print("Error prefetching addresses: $e");
+  }
+
+  runApp(const ProviderScope(child: MyApp()));
 }
 
 class MyApp extends ConsumerWidget {
@@ -58,14 +67,24 @@ class MyApp extends ConsumerWidget {
       final overlayService = RequestOverlay();
       final isOverlayGranted = await overlayService.requestOverlay();
       if (!isOverlayGranted) {
-        SystemNavigator.pop();
+        Fluttertoast.showToast(
+          msg: "Overlay permission is required to continue.",
+          toastLength: Toast.LENGTH_LONG,
+          gravity: ToastGravity.BOTTOM,
+        );
+        return;
       }
       if (navigatorKey.currentContext != null) {
         final locationServiceChecker =
             LocationServiceChecker(navigatorKey.currentContext!);
         locationServiceChecker.startChecking();
       } else {
-        SystemNavigator.pop();
+        Fluttertoast.showToast(
+          msg: "Location permission is required to continue.",
+          toastLength: Toast.LENGTH_LONG,
+          gravity: ToastGravity.BOTTOM,
+        );
+        return;
       }
       LocationUpdater locationUpdater = LocationUpdater();
       await locationUpdater.startLocationUpdates();

@@ -52,42 +52,44 @@ class _LoginScreenState extends ConsumerState<LoginFields> {
   }
 
   Future<void> _login() async {
-    ref.read(isLoadingProvider.notifier).state = true;
-    try {
-      final phoneNumber = _phoneController.text.trim();
-      final password = _passwordController.text.trim();
+  ref.read(isLoadingProvider.notifier).state = true;
+  try {
+    final phoneNumber = _phoneController.text.trim();
+    final password = _passwordController.text.trim();
 
-      final userCollection =
-          FirebaseFirestore.instance.collection('DeliveryUsers');
-      final snapshot = await userCollection
-          .where('ID', isEqualTo: phoneNumber)
-          .where('Password', isEqualTo: password)
-          .get();
+    final userCollection = FirebaseFirestore.instance.collection('DeliveryUsers');
+    final snapshot = await userCollection
+        .where('ID', isEqualTo: phoneNumber)
+        .where('Password', isEqualTo: password)
+        .get();
 
-      if (snapshot.docs.isNotEmpty) {
-        final userData = snapshot.docs.first.data();
+    print("Documents found: ${snapshot.docs.length}");
 
-        await _saveUserData(userData['ID'], snapshot.docs.first.id);
-
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => const OnlinePage()),
-        );
-      } else {
-        showCustomToast(
-          context,
-          "Invalid phone number or password",
-        );
-      }
-    } catch (e) {
-      showCustomToast(
-        context,
-        "Error Cant Login",
-      );
-    } finally {
-      ref.read(isLoadingProvider.notifier).state = false;
+    for (var doc in snapshot.docs) {
+      print("User ID: ${doc.id}, Data: ${doc.data()}");
     }
+
+    if (snapshot.docs.isNotEmpty) {
+      final userData = snapshot.docs.first.data();
+
+      await _saveUserData(userData['ID'], snapshot.docs.first.id);
+
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const OnlinePage()),
+      );
+    } else {
+      showCustomToast(context, "Invalid phone number or password");
+    }
+  } catch (e) {
+    print("Login error: $e");
+    showCustomToast(context, "Error: Can't Login");
+  } finally {
+    ref.read(isLoadingProvider.notifier).state = false;
   }
+}
+
+
 
   @override
   Widget build(BuildContext context) {
