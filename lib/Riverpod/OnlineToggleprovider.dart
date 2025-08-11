@@ -17,8 +17,8 @@ class LocationNotifier extends StateNotifier<LocationState> {
   final RequestOverlay requestOverlay;
 
   LocationNotifier()
-      : requestOverlay = RequestOverlay(),
-        super(LocationState(location: null, isOnline: false)) {
+    : requestOverlay = RequestOverlay(),
+      super(LocationState(location: null, isOnline: false)) {
     _initializeLocationAndStatus();
   }
 
@@ -50,10 +50,11 @@ class LocationNotifier extends StateNotifier<LocationState> {
     final id = prefs.getString('ID');
 
     if (id != null) {
-      final snapshot = await FirebaseFirestore.instance
-          .collection('DeliveryUsers')
-          .doc(id)
-          .get();
+      final snapshot =
+          await FirebaseFirestore.instance
+              .collection('DeliveryUsers')
+              .doc(id)
+              .get();
 
       if (snapshot.exists) {
         bool isOnline = snapshot['Status'] == 'Online';
@@ -69,8 +70,10 @@ class LocationNotifier extends StateNotifier<LocationState> {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     final id = prefs.getString('ID');
 
-    LatLng allowedLocation =
-        const LatLng(10.010321689460884, 76.38432031349255);
+    LatLng allowedLocation = const LatLng(
+      10.010321689460884,
+      76.38432031349255,
+    );
     if (!state.isOnline) {
       double distanceInMeters = Geolocator.distanceBetween(
         state.location!.latitude,
@@ -78,7 +81,6 @@ class LocationNotifier extends StateNotifier<LocationState> {
         allowedLocation.latitude,
         allowedLocation.longitude,
       );
-
 
       if (distanceInMeters <= 100) {
         await _setOnlineStatus(id, true);
@@ -91,10 +93,9 @@ class LocationNotifier extends StateNotifier<LocationState> {
   }
 
   Future<void> _setOnlineStatus(String? id, bool newStatus) async {
-    await FirebaseFirestore.instance
-        .collection('DeliveryUsers')
-        .doc(id)
-        .update({'Status': newStatus ? 'Online' : 'Offline'});
+    await FirebaseFirestore.instance.collection('DeliveryUsers').doc(id).update(
+      {'Status': newStatus ? 'Online' : 'Offline'},
+    );
 
     state = LocationState(location: state.location, isOnline: newStatus);
 
@@ -123,7 +124,8 @@ class LocationNotifier extends StateNotifier<LocationState> {
   }
 }
 
-final locationProvider =
-    StateNotifierProvider<LocationNotifier, LocationState>((ref) {
-  return LocationNotifier();
-});
+final locationProvider = StateNotifierProvider<LocationNotifier, LocationState>(
+  (ref) {
+    return LocationNotifier();
+  },
+);

@@ -60,4 +60,5 @@ class DefaultFirebaseOptions {
     databaseURL: 'https://kealthy-90c55-default-rtdb.asia-southeast1.firebasedatabase.app',
     storageBucket: 'kealthy-90c55.appspot.com',
   );
+
 }
