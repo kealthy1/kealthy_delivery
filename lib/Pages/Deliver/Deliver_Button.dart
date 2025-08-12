@@ -28,38 +28,40 @@ class DeliverNowButton extends ConsumerWidget {
     final NotificationService notificationService =
         NotificationService.instance;
 
-    return Align(
-      alignment: Alignment.bottomCenter,
-      child: Padding(
-        padding: const EdgeInsets.all(8.0),
-        child: SizedBox(
-          height: 50,
-          child: ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF273847),
-            ),
-            onPressed: () async {
-              final prefs = await SharedPreferences.getInstance();
-              if (order.paymentmethod != 'Cash on Delivery') {
-                await prefs.setString('paymentStatus', 'No');
-              }
-
-              showDialog(
-                context: context,
-                builder: (_) => _buildAlertLog(
+    return SafeArea(
+      child: Align(
+        alignment: Alignment.bottomCenter,
+        child: Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: SizedBox(
+            height: 50,
+            child: ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF273847),
+              ),
+              onPressed: () async {
+                final prefs = await SharedPreferences.getInstance();
+                if (order.paymentmethod != 'Cash on Delivery') {
+                  await prefs.setString('paymentStatus', 'No');
+                }
+      
+                showDialog(
                   context: context,
-                  isLoadingNotifier: isLoadingNotifier,
-                  orderService: orderService,
-                  notificationService: notificationService,
-                ),
-              );
-            },
-            child: const Center(
-              child: Text(
-                'Delivered',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
+                  builder: (_) => _buildAlertLog(
+                    context: context,
+                    isLoadingNotifier: isLoadingNotifier,
+                    orderService: orderService,
+                    notificationService: notificationService,
+                  ),
+                );
+              },
+              child: const Center(
+                child: Text(
+                  'Delivered',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
             ),

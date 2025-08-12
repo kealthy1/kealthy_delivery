@@ -15,7 +15,7 @@ import 'package:firebase_core/firebase_core.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
-  
+
   await requestPermissions();
   await NotificationService.instance.initialize();
   final permissionService = PermissionService();
@@ -34,7 +34,7 @@ void main() async {
       toastLength: Toast.LENGTH_LONG,
       gravity: ToastGravity.BOTTOM,
     );
-    return;
+    // return;
   }
 
   final isOverlayGranted = await overlayService.requestOverlay();
@@ -76,8 +76,9 @@ class MyApp extends ConsumerWidget {
         return;
       }
       if (navigatorKey.currentContext != null) {
-        final locationServiceChecker =
-            LocationServiceChecker(navigatorKey.currentContext!);
+        final locationServiceChecker = LocationServiceChecker(
+          navigatorKey.currentContext!,
+        );
         locationServiceChecker.startChecking();
       } else {
         Fluttertoast.showToast(
@@ -94,9 +95,7 @@ class MyApp extends ConsumerWidget {
       navigatorKey: navigatorKey,
       debugShowCheckedModeBanner: false,
       title: 'Kealthy Delivery',
-      theme: ThemeData(
-        primarySwatch: Colors.green,
-      ),
+      theme: ThemeData(primarySwatch: Colors.green),
       home: const SplashScreen(),
     );
   }

@@ -10,8 +10,9 @@ import 'package:kealthy_delivery/Pages/LandingPages/SearchOrders.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../Deliver/Deliver_Button.dart';
 
-final orderServiceProvider =
-    Provider<OrderServicesucces>((ref) => OrderServicesucces());
+final orderServiceProvider = Provider<OrderServicesucces>(
+  (ref) => OrderServicesucces(),
+);
 
 final isLoadingProvider = StateProvider<bool>((ref) => false);
 
@@ -21,23 +22,24 @@ class OrderServicesucces {
   }
 
   Future<void> _updateOrderStatus(String orderId, String status) async {
-    DatabaseReference databaseRef = FirebaseDatabase.instanceFor(
-      app: Firebase.app(),
-      databaseURL: "https://kealthy-90c55-dd236.firebaseio.com/",
-    ).ref();
+    DatabaseReference databaseRef =
+        FirebaseDatabase.instanceFor(
+          app: Firebase.app(),
+          databaseURL: "https://kealthy-90c55-dd236.firebaseio.com/",
+        ).ref();
 
     try {
       final snapshot = await databaseRef.child('orders').once();
       if (snapshot.snapshot.exists) {
         Map<dynamic, dynamic> orders =
             snapshot.snapshot.value as Map<dynamic, dynamic>;
-        List<MapEntry<dynamic, dynamic>> deliveredOrders = orders.entries
-            .where((entry) => entry.value['status'] == 'Order Delivered')
-            .toList();
+        List<MapEntry<dynamic, dynamic>> deliveredOrders =
+            orders.entries
+                .where((entry) => entry.value['status'] == 'Order Delivered')
+                .toList();
 
         for (var deliveredOrder in deliveredOrders) {
           final currentDateTime = DateTime.now();
-
           final formattedDate =
               "${currentDateTime.day.toString().padLeft(2, '0')}"
               "-${currentDateTime.month.toString().padLeft(2, '0')}"
@@ -48,6 +50,7 @@ class OrderServicesucces {
               "${currentDateTime.minute.toString().padLeft(2, '0')}:"
               "${currentDateTime.second.toString().padLeft(2, '0')}";
           final prefs = await SharedPreferences.getInstance();
+          print('deliveredOrder--$deliveredOrder');
           final Cod = prefs.getString('paymentStatus');
           final orderData = {
             'phoneNumber': deliveredOrder.value['phoneNumber'],
@@ -62,30 +65,39 @@ class OrderServicesucces {
             'date': formattedDate,
             'time': formattedTime,
             'ReceivedCOD': Cod?.isNotEmpty == true ? Cod : 'Yes',
+            'preferredTime': deliveredOrder.value['preferredTime'] ?? '0',
+            'orderPlacedAt': deliveredOrder.value['createdAt'],
+            'Type': deliveredOrder.value['type'],
           };
 
           const String apiUrl =
-              "https://api-jfnhkjk4nq-uc.a.run.app/createOrder";
+              "https://kealthy-backend-3.onrender.com/api/orders/create-order";
 
-          unawaited(http
-              .post(
-            Uri.parse(apiUrl),
-            headers: {'Content-Type': 'application/json'},
-            body: jsonEncode(orderData),
-          )
-              .then((response) {
-            if (response.statusCode == 201 || response.statusCode == 200) {
-              print('Order successfully sent to API.');
-              unawaited(databaseRef
-                  .child('orders')
-                  .child(deliveredOrder.key)
-                  .remove());
-            } else {
-              print('Failed to send order to API: ${response.body}');
-            }
-          }).catchError((error) {
-            print('HTTP Request Error: $error');
-          }));
+          unawaited(
+            http
+                .post(
+                  Uri.parse(apiUrl),
+                  headers: {'Content-Type': 'application/json'},
+                  body: jsonEncode(orderData),
+                )
+                .then((response) {
+                  if (response.statusCode == 201 ||
+                      response.statusCode == 200) {
+                    print('Order successfully sent to API.');
+                    unawaited(
+                      databaseRef
+                          .child('orders')
+                          .child(deliveredOrder.key)
+                          .remove(),
+                    );
+                  } else {
+                    print('Failed to send order to API: ${response.body}');
+                  }
+                })
+                .catchError((error) {
+                  print('HTTP Request Error: $error');
+                }),
+          );
         }
       } else {
         print('No orders found in the database.');
@@ -125,19 +137,16 @@ class _OrderConfirmationScreenState
       if (!mounted) return;
       // ignore: unused_result
       ref.refresh(paymentProvider);
-      ref.read(orderServiceProvider).updateOrderStatus(
-            widget.orderNumber,
-            'Order Delivered',
-          );
+      ref
+          .read(orderServiceProvider)
+          .updateOrderStatus(widget.orderNumber, 'Order Delivered');
     });
   }
 
   void _onHomeButtonPressed(BuildContext context) {
     Navigator.pushReplacement(
       context,
-      MaterialPageRoute(
-        builder: (context) => const OnlinePage(),
-      ),
+      MaterialPageRoute(builder: (context) => const OnlinePage()),
     );
   }
 
@@ -185,9 +194,10 @@ class _OrderConfirmationScreenState
                     const Text(
                       'GREAT JOB YOU ARE ON TIME 👍🏻',
                       style: TextStyle(
-                          fontSize: 14,
-                          color: Color(0xFF273847),
-                          fontFamily: "poppins"),
+                        fontSize: 14,
+                        color: Color(0xFF273847),
+                        fontFamily: "poppins",
+                      ),
                     ),
                     const SizedBox(height: 16),
                     Column(
@@ -196,10 +206,12 @@ class _OrderConfirmationScreenState
                         infoRow(
                           icon: Icons.assignment,
                           label: 'Order ID:',
-                          value: widget.orderNumber.length > 6
-                              ? widget.orderNumber
-                                  .substring(widget.orderNumber.length - 10)
-                              : widget.orderNumber,
+                          value:
+                              widget.orderNumber.length > 6
+                                  ? widget.orderNumber.substring(
+                                    widget.orderNumber.length - 10,
+                                  )
+                                  : widget.orderNumber,
                           iconColor: Colors.black87,
                         ),
                         const Divider(),
@@ -226,7 +238,8 @@ class _OrderConfirmationScreenState
               ),
               isLoading
                   ? const CircularProgressIndicator(color: Colors.red)
-                  : SizedBox(
+                  : SafeArea(
+                    child: SizedBox(
                       width: screenWidth * 0.9,
                       child: ElevatedButton(
                         onPressed: () {
@@ -246,6 +259,7 @@ class _OrderConfirmationScreenState
                         ),
                       ),
                     ),
+                  ),
             ],
           ),
         ),
@@ -272,14 +286,20 @@ Widget infoRow({
             Text(
               label,
               style: const TextStyle(
-                  fontSize: 14, color: Colors.black, fontFamily: "poppins"),
+                fontSize: 14,
+                color: Colors.black,
+                fontFamily: "poppins",
+              ),
             ),
           ],
         ),
         Text(
           value,
           style: const TextStyle(
-              fontSize: 14, color: Colors.black, fontFamily: "poppins"),
+            fontSize: 14,
+            color: Colors.black,
+            fontFamily: "poppins",
+          ),
         ),
       ],
     ),

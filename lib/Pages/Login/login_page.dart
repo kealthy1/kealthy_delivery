@@ -52,44 +52,45 @@ class _LoginScreenState extends ConsumerState<LoginFields> {
   }
 
   Future<void> _login() async {
-  ref.read(isLoadingProvider.notifier).state = true;
-  try {
-    final phoneNumber = _phoneController.text.trim();
-    final password = _passwordController.text.trim();
+    ref.read(isLoadingProvider.notifier).state = true;
+    try {
+      final phoneNumber = _phoneController.text.trim();
+      final password = _passwordController.text.trim();
 
-    final userCollection = FirebaseFirestore.instance.collection('DeliveryUsers');
-    final snapshot = await userCollection
-        .where('ID', isEqualTo: phoneNumber)
-        .where('Password', isEqualTo: password)
-        .get();
-
-    print("Documents found: ${snapshot.docs.length}");
-
-    for (var doc in snapshot.docs) {
-      print("User ID: ${doc.id}, Data: ${doc.data()}");
-    }
-
-    if (snapshot.docs.isNotEmpty) {
-      final userData = snapshot.docs.first.data();
-
-      await _saveUserData(userData['ID'], snapshot.docs.first.id);
-
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => const OnlinePage()),
+      final userCollection = FirebaseFirestore.instance.collection(
+        'DeliveryUsers',
       );
-    } else {
-      showCustomToast(context, "Invalid phone number or password");
+      final snapshot =
+          await userCollection
+              .where('Mobile', isEqualTo: phoneNumber)
+              .where('Password', isEqualTo: password)
+              .get();
+
+      print("Documents found: ${snapshot.docs.length}");
+
+      for (var doc in snapshot.docs) {
+        print("User ID: ${doc.id}, Data: ${doc.data()}");
+      }
+
+      if (snapshot.docs.isNotEmpty) {
+        final userData = snapshot.docs.first.data();
+
+        await _saveUserData(userData['ID'], snapshot.docs.first.id);
+
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const OnlinePage()),
+        );
+      } else {
+        showCustomToast(context, "Invalid phone number or password");
+      }
+    } catch (e) {
+      print("Login error: $e");
+      showCustomToast(context, "Error: Can't Login");
+    } finally {
+      ref.read(isLoadingProvider.notifier).state = false;
     }
-  } catch (e) {
-    print("Login error: $e");
-    showCustomToast(context, "Error: Can't Login");
-  } finally {
-    ref.read(isLoadingProvider.notifier).state = false;
   }
-}
-
-
 
   @override
   Widget build(BuildContext context) {
@@ -132,9 +133,10 @@ class _LoginScreenState extends ConsumerState<LoginFields> {
                   builder: (context, constraints) {
                     return ConstrainedBox(
                       constraints: BoxConstraints(
-                        maxWidth: constraints.maxWidth < 400
-                            ? constraints.maxWidth
-                            : 400,
+                        maxWidth:
+                            constraints.maxWidth < 400
+                                ? constraints.maxWidth
+                                : 400,
                       ),
                       child: Container(
                         padding: const EdgeInsets.all(16.0),
@@ -202,8 +204,9 @@ class _LoginScreenState extends ConsumerState<LoginFields> {
                             CustomTextField(
                               controller: _phoneController,
                               hintText: 'Phone Number',
-                              prefixIcon:
-                                  const Icon(CupertinoIcons.person_circle_fill),
+                              prefixIcon: const Icon(
+                                CupertinoIcons.person_circle_fill,
+                              ),
                               validator: (value) {
                                 if (value == null || value.isEmpty) {
                                   return 'Please enter your phone number';
@@ -215,8 +218,9 @@ class _LoginScreenState extends ConsumerState<LoginFields> {
                             CustomTextField(
                               controller: _passwordController,
                               hintText: 'Password',
-                              prefixIcon:
-                                  const Icon(CupertinoIcons.lock_circle),
+                              prefixIcon: const Icon(
+                                CupertinoIcons.lock_circle,
+                              ),
                               isObscure: true,
                               validator: (value) {
                                 if (value == null || value.isEmpty) {
@@ -227,35 +231,38 @@ class _LoginScreenState extends ConsumerState<LoginFields> {
                             ),
                             const SizedBox(height: 16),
                             ElevatedButton(
-                              onPressed: isLoading
-                                  ? null
-                                  : () {
-                                      if (_formKey.currentState!.validate()) {
-                                        _login();
-                                      }
-                                    },
+                              onPressed:
+                                  isLoading
+                                      ? null
+                                      : () {
+                                        if (_formKey.currentState!.validate()) {
+                                          _login();
+                                        }
+                                      },
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: Colors.green.shade500,
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(30.0),
                                 ),
-                                padding:
-                                    const EdgeInsets.symmetric(vertical: 16.0),
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 16.0,
+                                ),
                                 minimumSize: const Size(double.infinity, 0),
                               ),
-                              child: isLoading
-                                  ? const SizedBox(
-                                      height: 24,
-                                      width: 24,
-                                      child: CircularProgressIndicator(
-                                        color: Colors.white,
-                                        strokeWidth: 2,
+                              child:
+                                  isLoading
+                                      ? const SizedBox(
+                                        height: 24,
+                                        width: 24,
+                                        child: CircularProgressIndicator(
+                                          color: Colors.white,
+                                          strokeWidth: 2,
+                                        ),
+                                      )
+                                      : const Text(
+                                        'Login',
+                                        style: TextStyle(color: Colors.white),
                                       ),
-                                    )
-                                  : const Text(
-                                      'Login',
-                                      style: TextStyle(color: Colors.white),
-                                    ),
                             ),
                           ],
                         ),
@@ -298,9 +305,7 @@ class CustomTextField extends StatelessWidget {
         prefixIcon: prefixIcon,
         prefixIconColor: Colors.black38,
         hintText: hintText,
-        hintStyle: const TextStyle(
-          fontFamily: "poppins",
-        ),
+        hintStyle: const TextStyle(fontFamily: "poppins"),
         filled: true,
         fillColor: Colors.grey.shade200,
         border: OutlineInputBorder(
