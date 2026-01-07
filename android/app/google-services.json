@@ -8,17 +8,12 @@
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:486140167563:android:e8795f8f25034be4ae5b8e",
+        "mobilesdk_app_id": "1:486140167563:android:9f00064ee0e497e7ae5b8e",
         "android_client_info": {
-          "package_name": "com.COTOLORE.Kealthy"
+          "package_name": "com.COTOLORE.kealthy"
         }
       },
-      "oauth_client": [
-        {
-          "client_id": "486140167563-l62om8484pjo7l0m9s46k9ivemj5mgv9.apps.googleusercontent.com",
-          "client_type": 3
-        }
-      ],
+      "oauth_client": [],
       "api_key": [
         {
           "current_key": "AIzaSyAtCIdSOs_cpsz6TLXcJaMloWKFJcB2BlM"
@@ -26,12 +21,7 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": [
-            {
-              "client_id": "486140167563-l62om8484pjo7l0m9s46k9ivemj5mgv9.apps.googleusercontent.com",
-              "client_type": 3
-            }
-          ]
+          "other_platform_oauth_client": []
         }
       }
     },
@@ -42,12 +32,7 @@
           "package_name": "com.example.Kealthy"
         }
       },
-      "oauth_client": [
-        {
-          "client_id": "486140167563-l62om8484pjo7l0m9s46k9ivemj5mgv9.apps.googleusercontent.com",
-          "client_type": 3
-        }
-      ],
+      "oauth_client": [],
       "api_key": [
         {
           "current_key": "AIzaSyAtCIdSOs_cpsz6TLXcJaMloWKFJcB2BlM"
@@ -55,41 +40,7 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": [
-            {
-              "client_id": "486140167563-l62om8484pjo7l0m9s46k9ivemj5mgv9.apps.googleusercontent.com",
-              "client_type": 3
-            }
-          ]
-        }
-      }
-    },
-    {
-      "client_info": {
-        "mobilesdk_app_id": "1:486140167563:android:0c4a03e1941c1730ae5b8e",
-        "android_client_info": {
-          "package_name": "com.example.delivery_app"
-        }
-      },
-      "oauth_client": [
-        {
-          "client_id": "486140167563-l62om8484pjo7l0m9s46k9ivemj5mgv9.apps.googleusercontent.com",
-          "client_type": 3
-        }
-      ],
-      "api_key": [
-        {
-          "current_key": "AIzaSyAtCIdSOs_cpsz6TLXcJaMloWKFJcB2BlM"
-        }
-      ],
-      "services": {
-        "appinvite_service": {
-          "other_platform_oauth_client": [
-            {
-              "client_id": "486140167563-l62om8484pjo7l0m9s46k9ivemj5mgv9.apps.googleusercontent.com",
-              "client_type": 3
-            }
-          ]
+          "other_platform_oauth_client": []
         }
       }
     },
@@ -100,12 +51,7 @@
           "package_name": "com.example.kealthy_admin"
         }
       },
-      "oauth_client": [
-        {
-          "client_id": "486140167563-l62om8484pjo7l0m9s46k9ivemj5mgv9.apps.googleusercontent.com",
-          "client_type": 3
-        }
-      ],
+      "oauth_client": [],
       "api_key": [
         {
           "current_key": "AIzaSyAtCIdSOs_cpsz6TLXcJaMloWKFJcB2BlM"
@@ -113,28 +59,18 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": [
-            {
-              "client_id": "486140167563-l62om8484pjo7l0m9s46k9ivemj5mgv9.apps.googleusercontent.com",
-              "client_type": 3
-            }
-          ]
+          "other_platform_oauth_client": []
         }
       }
     },
     {
       "client_info": {
-        "mobilesdk_app_id": "1:486140167563:android:e287a024d6a304d0ae5b8e",
+        "mobilesdk_app_id": "1:486140167563:android:339dc774d4a1d89dae5b8e",
         "android_client_info": {
-          "package_name": "com.example.keathy_delivery_app"
+          "package_name": "com.example.kealthy_food"
         }
       },
-      "oauth_client": [
-        {
-          "client_id": "486140167563-l62om8484pjo7l0m9s46k9ivemj5mgv9.apps.googleusercontent.com",
-          "client_type": 3
-        }
-      ],
+      "oauth_client": [],
       "api_key": [
         {
           "current_key": "AIzaSyAtCIdSOs_cpsz6TLXcJaMloWKFJcB2BlM"
@@ -142,12 +78,7 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": [
-            {
-              "client_id": "486140167563-l62om8484pjo7l0m9s46k9ivemj5mgv9.apps.googleusercontent.com",
-              "client_type": 3
-            }
-          ]
+          "other_platform_oauth_client": []
         }
       }
     },
@@ -158,12 +89,7 @@
           "package_name": "com.kealthy_delivery.app"
         }
       },
-      "oauth_client": [
-        {
-          "client_id": "486140167563-l62om8484pjo7l0m9s46k9ivemj5mgv9.apps.googleusercontent.com",
-          "client_type": 3
-        }
-      ],
+      "oauth_client": [],
       "api_key": [
         {
           "current_key": "AIzaSyAtCIdSOs_cpsz6TLXcJaMloWKFJcB2BlM"
@@ -171,12 +97,7 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": [
-            {
-              "client_id": "486140167563-l62om8484pjo7l0m9s46k9ivemj5mgv9.apps.googleusercontent.com",
-              "client_type": 3
-            }
-          ]
+          "other_platform_oauth_client": []
         }
       }
     }

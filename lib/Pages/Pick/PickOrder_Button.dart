@@ -13,10 +13,7 @@ final isLoadingProvider = StateProvider<bool>((ref) => false);
 class PickButton extends ConsumerWidget {
   final Order order;
 
-  const PickButton({
-    super.key,
-    required this.order,
-  });
+  const PickButton({super.key, required this.order});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -24,39 +21,43 @@ class PickButton extends ConsumerWidget {
 
     return Align(
       alignment: Alignment.bottomCenter,
-      child: Padding(
-        padding: const EdgeInsets.all(8.0),
-        child: SizedBox(
-          height: 50,
-          child: ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF273847),
-            ),
-            onPressed: isLoading
-                ? null
-                : () {
-                    ConfirmationBottomSheet.show(
-                      context: context,
-                      title: 'Confirm Pick Order',
-                      message: 'Are you sure you want to pick this order?',
-                      onConfirm: () async {
-                        await _handlePickOrder(context, ref, order);
+      child: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: SizedBox(
+            height: 50,
+            child: ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF273847),
+              ),
+              onPressed:
+                  isLoading
+                      ? null
+                      : () {
+                        ConfirmationBottomSheet.show(
+                          context: context,
+                          title: 'Confirm Pick Order',
+                          message: 'Are you sure you want to pick this order?',
+                          onConfirm: () async {
+                            await _handlePickOrder(context, ref, order);
+                          },
+                          onCancel: () {
+                            Navigator.pop(context);
+                          },
+                        );
                       },
-                      onCancel: () {
-                        Navigator.pop(context);
-                      },
-                    );
-                  },
-            child: Center(
-              child: isLoading
-                  ? const CircularProgressIndicator(color: Colors.white)
-                  : Text(
-                      'Pick Order',
-                      style: GoogleFonts.poppins(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w300,
-                      ),
-                    ),
+              child: Center(
+                child:
+                    isLoading
+                        ? const CircularProgressIndicator(color: Colors.white)
+                        : Text(
+                          'Pick Order',
+                          style: GoogleFonts.poppins(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w300,
+                          ),
+                        ),
+              ),
             ),
           ),
         ),
@@ -65,7 +66,10 @@ class PickButton extends ConsumerWidget {
   }
 
   Future<void> _handlePickOrder(
-      BuildContext context, WidgetRef ref, Order order) async {
+    BuildContext context,
+    WidgetRef ref,
+    Order order,
+  ) async {
     final isLoadingNotifier = ref.read(isLoadingProvider.notifier);
     final OrderService orderService = OrderService(
       'https://kealthy-90c55-dd236.firebaseio.com/',
@@ -84,9 +88,7 @@ class PickButton extends ConsumerWidget {
         ),
       );
 
-      unawaited(
-        orderService.updateOrderStatus(order.orderId, 'Order Picked'),
-      );
+      unawaited(orderService.updateOrderStatus(order.orderId, 'Order Picked'));
 
       unawaited(
         notificationService.sendNotification(
@@ -98,9 +100,9 @@ class PickButton extends ConsumerWidget {
       );
     } catch (e) {
       print('Error: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error: $e')));
     } finally {
       if (context.mounted) {
         isLoadingNotifier.state = false;

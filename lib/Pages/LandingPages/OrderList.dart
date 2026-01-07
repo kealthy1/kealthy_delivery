@@ -35,15 +35,14 @@ class _OrdersAssignedPageState extends ConsumerState<OrdersAssignedPage> {
   @override
   Widget build(BuildContext context) {
     Future.microtask(() async {
-      await ref.read(locationServiceProvider.notifier).checkLocationAndShowAlert(context);
+      await ref
+          .read(locationServiceProvider.notifier)
+          .checkLocationAndShowAlert(context);
     });
     return Scaffold(
       appBar: AppBar(
         centerTitle: true,
-        title: Text(
-          'Assigned Orders',
-          style: GoogleFonts.poppins(),
-        ),
+        title: Text('Assigned Orders', style: GoogleFonts.poppins()),
         backgroundColor: Colors.white,
       ),
       backgroundColor: Colors.white,
@@ -82,47 +81,52 @@ class _OrdersAssignedPageState extends ConsumerState<OrdersAssignedPage> {
                   try {
                     final DatabaseReference orderRef =
                         FirebaseDatabase.instanceFor(
-                      app: Firebase.app(),
-                      databaseURL:
-                          'https://kealthy-90c55-dd236.firebaseio.com/',
-                    ).ref('orders/${order.orderId}');
+                          app: Firebase.app(),
+                          databaseURL:
+                              'https://kealthy-90c55-dd236.firebaseio.com/',
+                        ).ref('orders/${order.orderId}');
                     DatabaseEvent event = await orderRef.once();
 
                     if (event.snapshot.value != null) {
                       final updatedOrderData = Map<String, dynamic>.from(
-                          event.snapshot.value as Map<dynamic, dynamic>);
-                      final updatedOrder =
-                          Order.fromMap(order.orderId, updatedOrderData);
+                        event.snapshot.value as Map<dynamic, dynamic>,
+                      );
+                      final updatedOrder = Order.fromMap(
+                        order.orderId,
+                        updatedOrderData,
+                      );
                       if (updatedOrder.status == 'Order Reached') {
                         Navigator.push(
                           context,
                           CupertinoPageRoute(
-                            builder: (context) =>
-                                DeliverNow(order: updatedOrder),
+                            builder:
+                                (context) => DeliverNow(order: updatedOrder),
                           ),
                         );
                       } else if (updatedOrder.status == 'Order Picked') {
                         Navigator.push(
                           context,
                           CupertinoPageRoute(
-                            builder: (context) =>
-                                ReachNow(orderId: updatedOrder.orderId),
+                            builder:
+                                (context) =>
+                                    ReachNow(orderId: updatedOrder.orderId),
                           ),
                         );
                       } else if (updatedOrder.status == 'Order Placed') {
                         Navigator.push(
                           context,
                           CupertinoPageRoute(
-                            builder: (context) =>
-                                pickorder(orderId: updatedOrder.orderId),
+                            builder:
+                                (context) =>
+                                    pickorder(orderId: updatedOrder.orderId),
                           ),
                         );
                       } else {
                         Navigator.push(
                           context,
                           CupertinoPageRoute(
-                            builder: (context) =>
-                                DeliverNow(order: updatedOrder),
+                            builder:
+                                (context) => DeliverNow(order: updatedOrder),
                           ),
                         );
                       }
@@ -161,37 +165,25 @@ class _OrdersAssignedPageState extends ConsumerState<OrdersAssignedPage> {
               children: [
                 Text(
                   "Order: ${order.orderId.length > 6 ? order.orderId.substring(order.orderId.length - 10) : order.orderId}",
-                  style: GoogleFonts.poppins(
-                    color: Colors.white,
-                    fontSize: 18,
-                  ),
+                  style: GoogleFonts.poppins(color: Colors.white, fontSize: 18),
                 ),
-                Text('${order.distance} km',
-                    style: GoogleFonts.poppins(
-                      color: Colors.white,
-                    )),
+                Text(
+                  '${order.distance} km',
+                  style: GoogleFonts.poppins(color: Colors.white),
+                ),
               ],
             ),
             const SizedBox(height: 8),
             Text(
               order.selectedSlot,
-              style: GoogleFonts.poppins(
-                color: Colors.white,
-              ),
+              style: GoogleFonts.poppins(color: Colors.white),
             ),
             const SizedBox(height: 8),
-            Text(
-              order.name,
-              style: GoogleFonts.poppins(
-                color: Colors.white,
-              ),
-            ),
+            Text(order.name, style: GoogleFonts.poppins(color: Colors.white)),
             const SizedBox(height: 8),
             Text(
               order.selectedRoad,
-              style: GoogleFonts.poppins(
-                color: Colors.white,
-              ),
+              style: GoogleFonts.poppins(color: Colors.white),
             ),
           ],
         ),
@@ -220,8 +212,12 @@ class _OrdersAssignedPageState extends ConsumerState<OrdersAssignedPage> {
         Map<dynamic, dynamic> data = event.snapshot.value as Map;
         if (data.isNotEmpty) {
           return data.entries
-              .map((entry) => Order.fromMap(
-                  entry.key, Map<String, dynamic>.from(entry.value)))
+              .map(
+                (entry) => Order.fromMap(
+                  entry.key,
+                  Map<dynamic, dynamic>.from(entry.value),
+                ),
+              )
               .toList();
         }
       }

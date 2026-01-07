@@ -50,7 +50,7 @@ class OrderServicesucces {
               "${currentDateTime.minute.toString().padLeft(2, '0')}:"
               "${currentDateTime.second.toString().padLeft(2, '0')}";
           final prefs = await SharedPreferences.getInstance();
-          print('deliveredOrder--$deliveredOrder');
+          print('deliveredOrder--${deliveredOrder.value['orderItems']}');
           final Cod = prefs.getString('paymentStatus');
           final orderData = {
             'phoneNumber': deliveredOrder.value['phoneNumber'],
@@ -72,6 +72,7 @@ class OrderServicesucces {
 
           const String apiUrl =
               "https://kealthy-backend-3.onrender.com/api/orders/create-order";
+          print('api body--${jsonEncode(orderData)}');
 
           unawaited(
             http

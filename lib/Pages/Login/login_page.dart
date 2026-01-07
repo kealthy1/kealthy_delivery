@@ -62,7 +62,7 @@ class _LoginScreenState extends ConsumerState<LoginFields> {
       );
       final snapshot =
           await userCollection
-              .where('Mobile', isEqualTo: phoneNumber)
+              .where('ID', isEqualTo: phoneNumber)
               .where('Password', isEqualTo: password)
               .get();
 
@@ -82,7 +82,7 @@ class _LoginScreenState extends ConsumerState<LoginFields> {
           MaterialPageRoute(builder: (context) => const OnlinePage()),
         );
       } else {
-        showCustomToast(context, "Invalid phone number or password");
+        showCustomToast(context, "Invalid ID or password");
       }
     } catch (e) {
       print("Login error: $e");
@@ -203,13 +203,13 @@ class _LoginScreenState extends ConsumerState<LoginFields> {
                             const SizedBox(height: 16),
                             CustomTextField(
                               controller: _phoneController,
-                              hintText: 'Phone Number',
+                              hintText: 'Enter Your ID',
                               prefixIcon: const Icon(
                                 CupertinoIcons.person_circle_fill,
                               ),
                               validator: (value) {
                                 if (value == null || value.isEmpty) {
-                                  return 'Please enter your phone number';
+                                  return 'Please enter your ID';
                                 }
                                 return null;
                               },

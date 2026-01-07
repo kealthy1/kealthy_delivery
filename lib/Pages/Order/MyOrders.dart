@@ -46,6 +46,45 @@ class OrdersNotifier extends StateNotifier<List<Order>> {
   String selectedDateText = 'Today';
   bool loading = false;
 
+  Future<void> checkPaymentStatus(String orderId) async {
+    try {
+     // orderId = '22334445566';
+      //state = state.copyWith(isCheckingStatus: true);
+      final response = await http.get(
+        Uri.parse('https://api-jfnhkjk4nq-uc.a.run.app/payment/order/$orderId'),
+        headers: {'Content-Type': 'application/json'},
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        print('data---$data');
+        if (data != null &&
+            data['success'] == true &&
+            data['payments'] != null &&
+            data['payments'].isNotEmpty) {
+          // state = state.copyWith(isCaptured: true, isCheckingStatus: false);
+          print('Payments found for Order ID: $orderId');
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setString('paymentStatus', 'No');
+
+          await prefs.remove('orderId');
+          await prefs.remove('qrCodeUrl');
+          print('Cleared orderId and qrCodeUrl from SharedPreferences');
+        } else {
+          //state = state.copyWith(isCheckingStatus: false);
+          print('No payments found for Order ID: $orderId');
+        }
+      } else {
+        // state = state.copyWith(isCheckingStatus: false);
+        print('Failed to fetch payment status: $orderId');
+        print('payment: ${response.statusCode},${response.body}');
+      }
+    } catch (e) {
+      //   state = state.copyWith(isCheckingStatus: false);
+      print('Error while fetching payment status: $e');
+    }
+  }
+
   Future<void> fetchOrders({String? filterDate}) async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     final assignedId = prefs.getString('ID');
@@ -192,12 +231,10 @@ class OrdersPage extends ConsumerWidget {
           Tooltip(
             message: 'Logout',
             child: PopupMenuButton<_OverflowAction>(
-              
               icon: const Icon(Icons.power_settings_new, color: Colors.black),
               itemBuilder:
                   (context) => const [
                     PopupMenuItem<_OverflowAction>(
-                      
                       value: _OverflowAction.logout,
                       child: Text('Logout'),
                     ),
@@ -213,7 +250,17 @@ class OrdersPage extends ConsumerWidget {
                               content: const Text('Do you want to logout?'),
                               actions: [
                                 CupertinoDialogAction(
-                                  onPressed: () => Navigator.of(ctx).pop(false),
+                                  onPressed: () async {
+                                    final prefs =
+                                        await SharedPreferences.getInstance();
+                                    final savedOrderId =
+                                        prefs.getString('orderId') ?? '';
+                                    print('savedOrderId--$savedOrderId');
+                                    await ref
+                                        .read(ordersProvider.notifier)
+                                        .checkPaymentStatus(savedOrderId);
+                                    Navigator.of(ctx).pop(false);
+                                  },
                                   child: const Text('Cancel'),
                                 ),
                                 CupertinoDialogAction(

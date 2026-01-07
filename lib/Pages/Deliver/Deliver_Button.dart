@@ -169,6 +169,7 @@ class DeliverNowButton extends ConsumerWidget {
           title: 'Order Delivered',
           body: 'Delivery complete! Thank you for choosing us.',
         );
+        print('order delivered');
       } catch (notificationError) {
         print('Notification failed: $notificationError');
       }

@@ -4,22 +4,15 @@ buildscript {
         mavenCentral()
     }
     dependencies {
-        // START: FlutterFire Configuration
-        classpath 'com.google.gms:google-services:4.3.15'
-        // END: FlutterFire Configuration
-        classpath 'com.android.tools.build:gradle:8.6.1'
-        classpath 'org.jetbrains.kotlin:kotlin-gradle-plugin:1.9.24'
+        classpath 'com.android.tools.build:gradle:8.3.0'
     }
-}       
-
-
+}
 
 allprojects {
-       repositories {
+    repositories {
         google()
         mavenCentral()
     }
-     
 }
 
 rootProject.buildDir = "../build"
@@ -30,9 +23,8 @@ subprojects {
 
 subprojects {
     project.evaluationDependsOn(":app")
-   
 }
- 
+
 tasks.register("clean", Delete) {
     delete rootProject.buildDir
 }
