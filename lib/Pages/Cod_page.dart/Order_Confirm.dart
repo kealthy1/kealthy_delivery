@@ -14,96 +14,326 @@ final orderServiceProvider = Provider<OrderServicesucces>(
   (ref) => OrderServicesucces(),
 );
 
+class PaymentDialogResult {
+  final String paymentType; // "COD" | "Online"
+  final String? paymentGateway; // "Razorpay" | "Stripe" ... (optional)
+  final String paymentLastSix; // optional (for card/upi ref)
+  final bool paymentReceived; // true/false
+  final String receivedCOD; // "Yes" | "No" (keeps your existing field)
+
+  const PaymentDialogResult({
+    required this.paymentType,
+    required this.paymentGateway,
+    required this.paymentLastSix,
+    required this.paymentReceived,
+    required this.receivedCOD,
+  });
+}
+
 final isLoadingProvider = StateProvider<bool>((ref) => false);
+Future<PaymentDialogResult?> showPaymentStatusDialog(
+  BuildContext context, {
+  String title = 'Payment Status',
+}) async {
+  String paymentType = 'COD';
+  bool paymentReceived = true;
+  String? gateway;
+  final lastSixCtrl = TextEditingController();
+
+  return showDialog<PaymentDialogResult>(
+    context: context,
+    barrierDismissible: false,
+    builder: (ctx) {
+      return StatefulBuilder(
+        builder: (ctx, setState) {
+          return AlertDialog(
+            title: Text(title),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Payment Type
+                  DropdownButtonFormField<String>(
+                    value: paymentType,
+                    items: const [
+                      DropdownMenuItem(value: 'COD', child: Text('COD')),
+                      DropdownMenuItem(value: 'Online', child: Text('Online')),
+                    ],
+                    onChanged: (v) {
+                      if (v == null) return;
+                      setState(() => paymentType = v);
+                      if (v == 'COD') {
+                        setState(() {
+                          gateway = null;
+                          lastSixCtrl.clear();
+                        });
+                      }
+                    },
+                    decoration: const InputDecoration(
+                      labelText: 'Payment Type',
+                      border: OutlineInputBorder(),
+                      prefixIcon: Icon(Icons.payments_outlined),
+                    ),
+                  ),
+
+                  const SizedBox(height: 12),
+
+                  // Gateway (only for Online)
+                  if (paymentType == 'Online')
+                    DropdownButtonFormField<String>(
+                      value: gateway,
+                      items: const [
+                        DropdownMenuItem(
+                          value: 'Razorpay',
+                          child: Text('Razorpay'),
+                        ),
+                        DropdownMenuItem(
+                          value: 'Stripe',
+                          child: Text('Stripe'),
+                        ),
+                        DropdownMenuItem(value: 'Other', child: Text('Other')),
+                      ],
+                      onChanged: (v) => setState(() => gateway = v),
+                      decoration: const InputDecoration(
+                        labelText: 'Payment Gateway',
+                        border: OutlineInputBorder(),
+                        prefixIcon: Icon(Icons.account_balance_wallet_outlined),
+                      ),
+                    ),
+
+                  if (paymentType == 'Online') const SizedBox(height: 12),
+
+                  // Last 6 digits / ref (optional)
+                  TextField(
+                    controller: lastSixCtrl,
+                    keyboardType: TextInputType.number,
+                    maxLength: 6,
+                    decoration: const InputDecoration(
+                      labelText: 'Last 6 digits / Ref (optional)',
+                      border: OutlineInputBorder(),
+                      prefixIcon: Icon(Icons.numbers_outlined),
+                      counterText: '',
+                    ),
+                  ),
+
+                  const SizedBox(height: 8),
+
+                  // Payment received switch
+                  SwitchListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: const Text('Payment received'),
+                    value: paymentReceived,
+                    onChanged: (v) => setState(() => paymentReceived = v),
+                  ),
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, null),
+                child: const Text('Cancel'),
+              ),
+              FilledButton(
+                onPressed: () async {
+                  // Keep your existing SharedPreferences usage for COD status
+                  // (this is what you were reading as "paymentStatus")
+                  final prefs = await SharedPreferences.getInstance();
+                  final codValue =
+                      paymentType == 'COD'
+                          ? (paymentReceived ? 'Yes' : 'No')
+                          : 'Yes'; // for Online you can keep Yes or ignore
+
+                  await prefs.setString('paymentStatus', codValue);
+
+                  Navigator.pop(
+                    ctx,
+                    PaymentDialogResult(
+                      paymentType: paymentType,
+                      paymentGateway: paymentType == 'Online' ? gateway : null,
+                      paymentLastSix: lastSixCtrl.text.trim(),
+                      paymentReceived: paymentReceived,
+                      receivedCOD: codValue,
+                    ),
+                  );
+                },
+                child: const Text('Confirm'),
+              ),
+            ],
+          );
+        },
+      );
+    },
+  );
+}
 
 class OrderServicesucces {
-  void updateOrderStatus(String orderId, String status) {
-    unawaited(_updateOrderStatus(orderId, status));
+  void updateOrderStatus(BuildContext context, String orderId, String status) {
+    unawaited(deliverMultipleOrdersAndSync(context));
   }
 
-  Future<void> _updateOrderStatus(String orderId, String status) async {
-    DatabaseReference databaseRef =
+  Future<String> reverseLookupUsingPlaces(double lat, double lng) async {
+    final apiKey = "AIzaSyBVG3TySuO7MPp5yNuXaR5sSAODynVsKJ4";
+
+    final url = Uri.parse(
+      'https://places.googleapis.com/v1/places:searchNearby',
+    );
+
+    try {
+      final res = await http.post(
+        url,
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Goog-Api-Key': apiKey,
+          'X-Goog-FieldMask': 'places.formattedAddress,places.displayName',
+        },
+        body: jsonEncode({
+          "locationRestriction": {
+            "circle": {
+              "center": {"latitude": lat, "longitude": lng},
+              "radius": 50.0,
+            },
+          },
+        }),
+      );
+
+      if (res.statusCode != 200) {
+        return 'Address not found';
+      }
+
+      final data = jsonDecode(res.body);
+
+      if (data['places'] == null || data['places'].isEmpty) {
+        return 'Address not found';
+      }
+
+      return data['places'][0]['formattedAddress'] ?? 'Address not found';
+    } catch (e) {
+      return 'Address not found';
+    }
+  }
+
+  Future<void> deliverMultipleOrdersAndSync(BuildContext context) async {
+    final databaseRef =
         FirebaseDatabase.instanceFor(
           app: Firebase.app(),
           databaseURL: "https://kealthy-90c55-dd236.firebaseio.com/",
         ).ref();
 
     try {
-      final snapshot = await databaseRef.child('orders').once();
-      if (snapshot.snapshot.exists) {
-        Map<dynamic, dynamic> orders =
-            snapshot.snapshot.value as Map<dynamic, dynamic>;
-        List<MapEntry<dynamic, dynamic>> deliveredOrders =
-            orders.entries
-                .where((entry) => entry.value['status'] == 'Order Delivered')
-                .toList();
+      final snapshot = await databaseRef.child('orders').get();
+      if (!snapshot.exists) {
+        debugPrint('No orders found.');
+        return;
+      }
 
-        for (var deliveredOrder in deliveredOrders) {
-          final currentDateTime = DateTime.now();
-          final formattedDate =
-              "${currentDateTime.day.toString().padLeft(2, '0')}"
-              "-${currentDateTime.month.toString().padLeft(2, '0')}"
-              "-${currentDateTime.year}";
+      final Map<dynamic, dynamic> orders = Map<dynamic, dynamic>.from(
+        snapshot.value as Map,
+      );
 
-          final formattedTime =
-              "${currentDateTime.hour.toString().padLeft(2, '0')}:"
-              "${currentDateTime.minute.toString().padLeft(2, '0')}:"
-              "${currentDateTime.second.toString().padLeft(2, '0')}";
-          final prefs = await SharedPreferences.getInstance();
-          print('deliveredOrder--$deliveredOrder');
-          final Cod = prefs.getString('paymentStatus');
-          final orderData = {
-            'phoneNumber': deliveredOrder.value['phoneNumber'],
-            'orderId': deliveredOrder.key,
-            'assignedTo': deliveredOrder.value['assignedto'],
-            'fcm': deliveredOrder.value['fcm_token'],
-            'orderItems': deliveredOrder.value['orderItems'],
-            'Name': deliveredOrder.value['Name'],
-            'totalAmountToPay': deliveredOrder.value['totalAmountToPay'],
-            'selectedLatitude': deliveredOrder.value['selectedLatitude'],
-            'selectedLongitude': deliveredOrder.value['selectedLongitude'],
-            'date': formattedDate,
-            'time': formattedTime,
-            'ReceivedCOD': Cod?.isNotEmpty == true ? Cod : 'Yes',
-            'preferredTime': deliveredOrder.value['preferredTime'] ?? '0',
-            'orderPlacedAt': deliveredOrder.value['createdAt'],
-            'Type': deliveredOrder.value['type'],
-          };
+      final deliveredOrders =
+          orders.entries
+              .where(
+                (e) =>
+                    (e.value['status']?.toString() ?? '') == 'Order Delivered',
+              )
+              .toList();
 
-          const String apiUrl =
-              "https://kealthy-backend-3.onrender.com/api/orders/create-order";
+      if (deliveredOrders.isEmpty) return;
 
-          unawaited(
-            http
-                .post(
-                  Uri.parse(apiUrl),
-                  headers: {'Content-Type': 'application/json'},
-                  body: jsonEncode(orderData),
-                )
-                .then((response) {
-                  if (response.statusCode == 201 ||
-                      response.statusCode == 200) {
-                    print('Order successfully sent to API.');
-                    unawaited(
-                      databaseRef
-                          .child('orders')
-                          .child(deliveredOrder.key)
-                          .remove(),
-                    );
-                  } else {
-                    print('Failed to send order to API: ${response.body}');
-                  }
-                })
-                .catchError((error) {
-                  print('HTTP Request Error: $error');
-                }),
+      for (final entry in deliveredOrders) {
+        final orderId = entry.key;
+        final order = Map<String, dynamic>.from(entry.value);
+
+        // 1️⃣ Ask payment details PER ORDER
+        final payment = await showPaymentStatusDialog(
+          context,
+          title: 'Payment Status • Order $orderId',
+        );
+
+        if (payment == null) {
+          // User cancelled → skip this order
+          continue;
+        }
+
+        // 2️⃣ Address resolution
+        final String address =
+            (order['selectedRoad']?.toString().isNotEmpty ?? false)
+                ? order['selectedRoad']
+                : await reverseLookupUsingPlaces(
+                  double.parse(order['selectedLatitude'].toString()),
+                  double.parse(order['selectedLongitude'].toString()),
+                );
+
+        // 3️⃣ Date & Time
+        final now = DateTime.now();
+        final formattedDate =
+            "${now.day.toString().padLeft(2, '0')}-${now.month.toString().padLeft(2, '0')}-${now.year}";
+        final formattedTime =
+            "${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}:${now.second.toString().padLeft(2, '0')}";
+
+        // 4️⃣ Build API payload (MATCHED STRUCTURE)
+        final orderData = {
+          'phoneNumber': order['phoneNumber'],
+          'orderId': orderId,
+          'assignedTo': order['assignedto'],
+          'address': address,
+          'distance': order['distance'],
+          'fcm': order['fcm_token'],
+          'orderItems': order['orderItems'],
+          'Name': order['Name'],
+          'totalAmountToPay': order['totalAmountToPay'],
+          'selectedLatitude': order['selectedLatitude'],
+          'selectedLongitude': order['selectedLongitude'],
+          'date': formattedDate,
+          'time': formattedTime,
+          'ReceivedCOD':
+              payment.paymentType == 'Cash On Delivery' ? 'Yes' : 'No',
+          'preferredTime': order['preferredTime'] ?? '0',
+          'orderPlacedAt': order['createdAt'],
+          'Type': order['type'],
+          'paymentType': payment.paymentType,
+          'paymentGateway':
+              payment.paymentType == 'Online' ? payment.paymentGateway : null,
+          'paymentLastSix':
+              payment.paymentLastSix.isNotEmpty ? payment.paymentLastSix : null,
+          'paymentReceived': payment.paymentReceived,
+          'deliveredAt': now.toIso8601String(),
+        };
+
+        const apiUrl =
+            "https://api-jfnhkjk4nq-uc.a.run.app/delivered/create-order";
+
+        // 5️⃣ Send to API
+        final response = await http.post(
+          Uri.parse(apiUrl),
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode(orderData),
+        );
+
+        if (response.statusCode == 200 || response.statusCode == 201) {
+          await databaseRef.child('orders/$orderId').remove();
+
+          debugPrint('Order $orderId synced & removed.');
+        } else {
+          debugPrint(
+            'API failed for $orderId → ${response.statusCode} | ${response.body}',
           );
         }
-      } else {
-        print('No orders found in the database.');
       }
-    } catch (error) {
-      print('Error updating order status: $error');
+
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Delivered orders synced successfully')),
+        );
+        Navigator.pop(context);
+      }
+    } catch (e, st) {
+      debugPrint('Multi-delivery error: $e\n$st');
+      if (context.mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Order sync failed')));
+      }
     }
   }
 }
@@ -139,7 +369,7 @@ class _OrderConfirmationScreenState
       ref.refresh(paymentProvider);
       ref
           .read(orderServiceProvider)
-          .updateOrderStatus(widget.orderNumber, 'Order Delivered');
+          .updateOrderStatus(context, widget.orderNumber, "Order Delivered");
     });
   }
 
