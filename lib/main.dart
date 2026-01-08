@@ -23,7 +23,7 @@ void main() async {
   final listenForOrderAssignments = PermissionService();
   listenForOrderAssignments.listenForOrderAssignments();
   DatabaseListener().listenForOrderStatusChanges();
-  final overlayService = RequestOverlay();
+  //final overlayService = RequestOverlay();
   final LocationpermissionService = LocationPermissionService();
   final isPermissionGranted =
       await LocationpermissionService.requestPermissions();
@@ -37,15 +37,15 @@ void main() async {
     // return;
   }
 
-  final isOverlayGranted = await overlayService.requestOverlay();
-  if (!isOverlayGranted) {
-    Fluttertoast.showToast(
-      msg: "Overlay permission is required to continue.",
-      toastLength: Toast.LENGTH_LONG,
-      gravity: ToastGravity.BOTTOM,
-    );
-    return;
-  }
+  // final isOverlayGranted = await overlayService.requestOverlay();
+  // if (!isOverlayGranted) {
+  //   Fluttertoast.showToast(
+  //     msg: "Overlay permission is required to continue.",
+  //     toastLength: Toast.LENGTH_LONG,
+  //     gravity: ToastGravity.BOTTOM,
+  //   );
+  //   return;
+  // }
 
   final container = ProviderContainer();
   try {
@@ -65,16 +65,16 @@ class MyApp extends ConsumerWidget {
     final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
     WidgetsBinding.instance.addPostFrameCallback((_) async {
-      final overlayService = RequestOverlay();
-      final isOverlayGranted = await overlayService.requestOverlay();
-      if (!isOverlayGranted) {
-        Fluttertoast.showToast(
-          msg: "Overlay permission is required to continue.",
-          toastLength: Toast.LENGTH_LONG,
-          gravity: ToastGravity.BOTTOM,
-        );
-        return;
-      }
+      //  // final overlayService = RequestOverlay();
+      //   final isOverlayGranted = await overlayService.requestOverlay();
+      //   if (!isOverlayGranted) {
+      //     Fluttertoast.showToast(
+      //       msg: "Overlay permission is required to continue.",
+      //       toastLength: Toast.LENGTH_LONG,
+      //       gravity: ToastGravity.BOTTOM,
+      //     );
+      //     return;
+      //   }
       if (navigatorKey.currentContext != null) {
         final locationServiceChecker = LocationServiceChecker(
           navigatorKey.currentContext!,

@@ -25,129 +25,179 @@ class _OrdersAssignedPageState extends ConsumerState<OrdersAssignedPage> {
   @override
   void initState() {
     super.initState();
-    _fetchOrders();
+    _ordersFuture = fetchOrderDataByAssignedTo();
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      ref
+          .read(locationServiceProvider.notifier)
+          .checkLocationAndShowAlert(context);
+    });
   }
 
-  Future<void> _fetchOrders() async {
-    _ordersFuture = fetchOrderDataByAssignedTo();
+  Future<void> _handleOrderTap(Order order) async {
+    final prefs = await SharedPreferences.getInstance();
+
+    // Clear old payment status before starting new flow
+    await prefs.remove('paymentStatus');
+
+    // Show a loading dialog so the user knows the app is fetching details
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(child: CircularProgressIndicator()),
+    );
+
+    try {
+      final DatabaseReference orderRef = FirebaseDatabase.instanceFor(
+        app: Firebase.app(),
+        databaseURL: 'https://kealthy-90c55-dd236.firebaseio.com/',
+      ).ref('orders/${order.orderId}');
+
+      DatabaseEvent event = await orderRef.once();
+
+      // Close the loading dialog
+      if (mounted) Navigator.pop(context);
+
+      if (event.snapshot.value != null) {
+        final updatedOrderData = Map<String, dynamic>.from(
+          event.snapshot.value as Map<dynamic, dynamic>,
+        );
+
+        final updatedOrder = Order.fromMap(order.orderId, updatedOrderData);
+
+        // Navigate based on status
+        _navigateBasedOnStatus(updatedOrder);
+      } else {
+        _showSnackBar('Order no longer exists.');
+      }
+    } catch (e) {
+      if (mounted) Navigator.pop(context); // Close loader on error
+      debugPrint('Error navigating: $e');
+      _showSnackBar('Error fetching order details: $e');
+    }
+  }
+
+  void _navigateBasedOnStatus(Order updatedOrder) {
+    Widget targetPage;
+
+    switch (updatedOrder.status) {
+      case 'Order Reached':
+        targetPage = DeliverNow(order: updatedOrder);
+        break;
+      case 'Order Picked':
+        targetPage = ReachNow(orderId: updatedOrder.orderId);
+        break;
+      case 'Order Placed':
+        targetPage = pickorder(orderId: updatedOrder.orderId);
+        break;
+      default:
+        // Fallback for any other status
+        targetPage = DeliverNow(order: updatedOrder);
+    }
+
+    Navigator.push(
+      context,
+      CupertinoPageRoute(builder: (context) => targetPage),
+    );
+  }
+
+  void _showSnackBar(String message) {
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   @override
   Widget build(BuildContext context) {
-    Future.microtask(() async {
-      await ref
-          .read(locationServiceProvider.notifier)
-          .checkLocationAndShowAlert(context);
-    });
     return Scaffold(
       appBar: AppBar(
         centerTitle: true,
         title: Text('Assigned Orders', style: GoogleFonts.poppins()),
         backgroundColor: Colors.white,
+        elevation: 0,
       ),
       backgroundColor: Colors.white,
-      body: FutureBuilder<List<Order>>(
-        future: _ordersFuture,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(
-              child: LoadingWidget(message: 'Loading Orders...'),
-            );
-          } else if (snapshot.hasError) {
-            return Center(
-              child: Text(
-                'Error: ${snapshot.error}',
-                style: GoogleFonts.poppins(color: Colors.black),
-              ),
-            );
-          } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-            return Center(
-              child: Text(
-                'No orders assigned',
-                style: GoogleFonts.poppins(color: Colors.black),
-              ),
-            );
-          }
-
-          final orders = snapshot.data!;
-          return ListView.builder(
-            itemCount: orders.length,
-            itemBuilder: (context, index) {
-              final order = orders[index];
-              return GestureDetector(
-                onTap: () async {
-                  final prefs = await SharedPreferences.getInstance();
-                  await prefs.remove('paymentStatus');
-                  try {
-                    final DatabaseReference orderRef =
-                        FirebaseDatabase.instanceFor(
-                          app: Firebase.app(),
-                          databaseURL:
-                              'https://kealthy-90c55-dd236.firebaseio.com/',
-                        ).ref('orders/${order.orderId}');
-                    DatabaseEvent event = await orderRef.once();
-
-                    if (event.snapshot.value != null) {
-                      final updatedOrderData = Map<String, dynamic>.from(
-                        event.snapshot.value as Map<dynamic, dynamic>,
-                      );
-                      final updatedOrder = Order.fromMap(
-                        order.orderId,
-                        updatedOrderData,
-                      );
-                      if (updatedOrder.status == 'Order Reached') {
-                        Navigator.push(
-                          context,
-                          CupertinoPageRoute(
-                            builder:
-                                (context) => DeliverNow(order: updatedOrder),
-                          ),
-                        );
-                      } else if (updatedOrder.status == 'Order Picked') {
-                        Navigator.push(
-                          context,
-                          CupertinoPageRoute(
-                            builder:
-                                (context) =>
-                                    ReachNow(orderId: updatedOrder.orderId),
-                          ),
-                        );
-                      } else if (updatedOrder.status == 'Order Placed') {
-                        Navigator.push(
-                          context,
-                          CupertinoPageRoute(
-                            builder:
-                                (context) =>
-                                    pickorder(orderId: updatedOrder.orderId),
-                          ),
-                        );
-                      } else {
-                        Navigator.push(
-                          context,
-                          CupertinoPageRoute(
-                            builder:
-                                (context) => DeliverNow(order: updatedOrder),
-                          ),
-                        );
-                      }
-                    } else {
-                      throw 'Order data not found';
-                    }
-                  } catch (e) {
-                    print('Error navigating based on order: $e');
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('Error fetching order details: $e'),
-                      ),
-                    );
-                  }
-                },
-                child: _buildOrderTile(order),
-              );
-            },
-          );
+      body: RefreshIndicator(
+        onRefresh: () async {
+          setState(() {
+            _ordersFuture = fetchOrderDataByAssignedTo();
+          });
         },
+        child: FutureBuilder<List<Order>>(
+          future: _ordersFuture,
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(
+                child: LoadingWidget(message: 'Checking for orders...'),
+              );
+            }
+
+            // If there is a legitimate error (e.g., no internet)
+            if (snapshot.hasError) {
+              return _buildEmptyState(
+                icon: Icons.error_outline,
+                message: 'Something went wrong. Pull to refresh.',
+              );
+            }
+
+            // If the list is null or empty
+            if (!snapshot.hasData || snapshot.data!.isEmpty) {
+              return _buildEmptyState(
+                icon: Icons.assignment_late_outlined,
+                message: 'No orders assigned to you yet.',
+              );
+            }
+
+            final orders = snapshot.data!;
+            return ListView.builder(
+              padding: const EdgeInsets.only(bottom: 20),
+              itemCount: orders.length,
+              itemBuilder: (context, index) {
+                final order = orders[index];
+                return GestureDetector(
+                  onTap:
+                      () => _handleOrderTap(order), // Moved logic to a helper
+                  child: _buildOrderTile(order),
+                );
+              },
+            );
+          },
+        ),
       ),
+    );
+  }
+
+  // Helper Widget for No Orders
+  Widget _buildEmptyState({required IconData icon, required String message}) {
+    return ListView(
+      // Used ListView so RefreshIndicator works
+      children: [
+        SizedBox(height: MediaQuery.of(context).size.height * 0.2),
+        Center(
+          child: Column(
+            children: [
+              Icon(icon, size: 80, color: Colors.grey[300]),
+              const SizedBox(height: 16),
+              Text(
+                message,
+                style: GoogleFonts.poppins(
+                  color: Colors.grey[600],
+                  fontSize: 16,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                "Pull down to refresh",
+                style: GoogleFonts.poppins(
+                  color: Colors.grey[400],
+                  fontSize: 12,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 
@@ -196,7 +246,8 @@ class _OrdersAssignedPageState extends ConsumerState<OrdersAssignedPage> {
     final String? assignedId = prefs.getString('ID');
 
     if (assignedId == null) {
-      throw 'No assigned ID found in SharedPreferences';
+      // Return empty rather than throwing to avoid the "Error" UI state
+      return [];
     }
 
     final DatabaseReference orderRef = FirebaseDatabase.instanceFor(
@@ -210,20 +261,22 @@ class _OrdersAssignedPageState extends ConsumerState<OrdersAssignedPage> {
 
       if (event.snapshot.value != null) {
         Map<dynamic, dynamic> data = event.snapshot.value as Map;
-        if (data.isNotEmpty) {
-          return data.entries
-              .map(
-                (entry) => Order.fromMap(
-                  entry.key,
-                  Map<dynamic, dynamic>.from(entry.value),
-                ),
-              )
-              .toList();
-        }
+        return data.entries
+            .map(
+              (entry) => Order.fromMap(
+                entry.key,
+                Map<dynamic, dynamic>.from(entry.value),
+              ),
+            )
+            .toList();
       }
-      throw 'No order found for the assigned ID';
+
+      // If snapshot is null, return empty list
+      return [];
     } catch (e) {
-      throw 'Error fetching order data: $e';
+      print('Error fetching order data: $e');
+      // Still return empty list or handle specific errors here
+      return [];
     }
   }
 }

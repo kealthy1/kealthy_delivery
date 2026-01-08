@@ -1,5 +1,4 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:dash_bubble/dash_bubble.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
@@ -14,13 +13,15 @@ class LocationState {
 }
 
 class LocationNotifier extends StateNotifier<LocationState> {
-  final RequestOverlay requestOverlay;
+  LocationNotifier(super.state);
 
-  LocationNotifier()
-    : requestOverlay = RequestOverlay(),
-      super(LocationState(location: null, isOnline: false)) {
-    _initializeLocationAndStatus();
-  }
+ // final RequestOverlay requestOverlay;
+
+  // LocationNotifier();
+  //   // : requestOverlay = RequestOverlay(),
+  //     super(LocationState(location: null, isOnline: false)) {
+  //   _initializeLocationAndStatus();
+  // }
 
   Future<void> _initializeLocationAndStatus() async {
     // await _determinePosition();
@@ -60,7 +61,7 @@ class LocationNotifier extends StateNotifier<LocationState> {
         bool isOnline = snapshot['Status'] == 'Online';
         state = LocationState(location: state.location, isOnline: isOnline);
         if (isOnline) {
-          _startBubble();
+         // _startBubble();
         }
       }
     }
@@ -99,33 +100,33 @@ class LocationNotifier extends StateNotifier<LocationState> {
 
     state = LocationState(location: state.location, isOnline: newStatus);
 
-    if (newStatus) {
-      _startBubble();
-    } else {
-      await requestOverlay.stopBubble();
-    }
+    // if (newStatus) {
+    //   _startBubble();
+    // } else {
+    //   await requestOverlay.stopBubble();
+    // }
   }
 
-  void _startBubble() {
-    requestOverlay.startBubble(
-      BubbleOptions(
-        bubbleIcon: "bubble",
-        bubbleSize: 40,
-        enableClose: false,
-        distanceToClose: 90,
-        enableAnimateToEdge: true,
-        enableBottomShadow: true,
-        keepAliveWhenAppExit: false,
-      ),
-      onTap: () {
-        requestOverlay.logMessage(message: "Bubble Tapped");
-      },
-    );
-  }
+  // void _startBubble() {
+  //   requestOverlay.startBubble(
+  //     BubbleOptions(
+  //       bubbleIcon: "bubble",
+  //       bubbleSize: 40,
+  //       enableClose: false,
+  //       distanceToClose: 90,
+  //       enableAnimateToEdge: true,
+  //       enableBottomShadow: true,
+  //       keepAliveWhenAppExit: false,
+  //     ),
+  //     onTap: () {
+  //       requestOverlay.logMessage(message: "Bubble Tapped");
+  //     },
+  //   );
+  // }
 }
 
 final locationProvider = StateNotifierProvider<LocationNotifier, LocationState>(
   (ref) {
-    return LocationNotifier();
+    return LocationNotifier(LocationState(location: null, isOnline: false));
   },
 );

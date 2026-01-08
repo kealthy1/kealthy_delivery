@@ -174,17 +174,18 @@ class DeliverNowButton extends ConsumerWidget {
         print('Notification failed: $notificationError');
       }
       if (context.mounted) {
-        Navigator.of(context).pushAndRemoveUntil(
-          MaterialPageRoute(
-            builder: (context) => OrderConfirmationScreen(
-              orderNumber: order.orderId,
-              totalAmount: order.totalAmountToPay,
-              distance: order.distance,
-              orderStatus: order.status,
-            ),
-          ),
-          (route) => false,
-        );
+      Navigator.of(context).pushAndRemoveUntil(
+  MaterialPageRoute(
+    builder: (_) => OrderConfirmationScreen(
+      orderNumber: order.orderId,
+      totalAmount: order.totalAmountToPay,
+      distance: order.distance,
+      orderStatus: 'Order Delivered',
+    ),
+  ),
+  (_) => false,
+);
+
       }
     } catch (e) {
       print('Error: $e');

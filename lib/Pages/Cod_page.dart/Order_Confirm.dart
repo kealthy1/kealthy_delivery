@@ -167,8 +167,11 @@ Future<PaymentDialogResult?> showPaymentStatusDialog(
 }
 
 class OrderServicesucces {
-  void updateOrderStatus(BuildContext context, String orderId, String status) {
-    unawaited(deliverMultipleOrdersAndSync(context));
+  Future<void> updateOrderStatus(
+    BuildContext context,
+    PaymentDialogResult payment,
+  ) async {
+    await deliverMultipleOrdersAndSync(context, payment);
   }
 
   Future<String> reverseLookupUsingPlaces(double lat, double lng) async {
@@ -212,7 +215,10 @@ class OrderServicesucces {
     }
   }
 
-  Future<void> deliverMultipleOrdersAndSync(BuildContext context) async {
+  Future<void> deliverMultipleOrdersAndSync(
+    BuildContext context,
+    PaymentDialogResult payment,
+  ) async {
     final databaseRef =
         FirebaseDatabase.instanceFor(
           app: Firebase.app(),
@@ -245,15 +251,6 @@ class OrderServicesucces {
         final order = Map<String, dynamic>.from(entry.value);
 
         // 1️⃣ Ask payment details PER ORDER
-        final payment = await showPaymentStatusDialog(
-          context,
-          title: 'Payment Status • Order $orderId',
-        );
-
-        if (payment == null) {
-          // User cancelled → skip this order
-          continue;
-        }
 
         // 2️⃣ Address resolution
         final String address =
@@ -286,8 +283,7 @@ class OrderServicesucces {
           'selectedLongitude': order['selectedLongitude'],
           'date': formattedDate,
           'time': formattedTime,
-          'ReceivedCOD':
-              payment.paymentType == 'Cash On Delivery' ? 'Yes' : 'No',
+          'ReceivedCOD': payment.paymentType == 'COD' ? 'Yes' : 'No',
           'preferredTime': order['preferredTime'] ?? '0',
           'orderPlacedAt': order['createdAt'],
           'Type': order['type'],
@@ -323,9 +319,11 @@ class OrderServicesucces {
 
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Delivered orders synced successfully')),
+          const SnackBar(
+            backgroundColor: Colors.green,
+            content: Text('Delivered orders synced successfully'),
+          ),
         );
-        Navigator.pop(context);
       }
     } catch (e, st) {
       debugPrint('Multi-delivery error: $e\n$st');
@@ -365,12 +363,25 @@ class _OrderConfirmationScreenState
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
-      // ignore: unused_result
+      _openCodPopup();
       ref.refresh(paymentProvider);
-      ref
-          .read(orderServiceProvider)
-          .updateOrderStatus(context, widget.orderNumber, "Order Delivered");
     });
+  }
+
+  Future<void> _openCodPopup() async {
+    final payment = await showPaymentStatusDialog(
+      context,
+      title: 'Payment Status • Order ${widget.orderNumber}',
+    );
+
+    if (payment == null) return;
+
+    // Optional: store locally if needed
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('paymentStatus', payment.receivedCOD);
+
+    // Now call backend sync
+    await ref.read(orderServiceProvider).updateOrderStatus(context, payment);
   }
 
   void _onHomeButtonPressed(BuildContext context) {
