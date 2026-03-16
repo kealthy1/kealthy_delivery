@@ -2,6 +2,20 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+double _toDouble(dynamic v, {double fallback = 0.0}) {
+  if (v == null) return fallback;
+  if (v is num) return v.toDouble();
+  if (v is String) return double.tryParse(v.trim()) ?? fallback;
+  return fallback;
+}
+
+List<dynamic> _toList(dynamic v) {
+  if (v == null) return [];
+  if (v is List) return v;
+  if (v is Map) return v.values.toList();
+  return [];
+}
+
 class Order {
   final String orderId;
   final String name;
@@ -37,27 +51,32 @@ class Order {
     required this.orderItems,
     required this.cookinginstrcutions,
     required this.selectedSlot,
-
   });
 
   factory Order.fromMap(String orderId, Map<dynamic, dynamic> data) {
     return Order(
       orderId: orderId,
-      name: data['Name'] ?? 'N/A',
-      phoneNumber: data['phoneNumber'] ?? 'N/A',
-      deliveryInstructions: data['deliveryInstructions'] ?? 'N/A',
-      selectedDirections: data['selectedDirections'] ?? 'N/A',
-      selectedRoad: data['selectedRoad'] ?? 'N/A',
-      selectedLatitude: (data['selectedLatitude'] as num).toDouble(),
-      selectedLongitude: (data['selectedLongitude'] as num).toDouble(),
-      distance: data['distance'] ?? '0',
-      paymentmethod: data['paymentmethod'] ?? 'Unknown',
-      totalAmountToPay: (data['totalAmountToPay'] as num).toDouble(),
-      fcmToken: data['fcm_token'] ?? '',
-      status: data['status'] ?? 'Pending',
-      orderItems: List<dynamic>.from(data['orderItems'] ?? []),
-      cookinginstrcutions:data["cookinginstrcutions"] ?? "",
-      selectedSlot:data["selectedSlot"] ?? ""
+      name: data['Name']?.toString() ?? 'N/A',
+      phoneNumber: data['phoneNumber']?.toString() ?? 'N/A',
+      deliveryInstructions: data['deliveryInstructions']?.toString() ?? 'N/A',
+      selectedDirections: data['selectedDirections']?.toString() ?? 'N/A',
+      selectedRoad: data['selectedRoad']?.toString() ?? 'N/A',
+
+      selectedLatitude: _toDouble(data['selectedLatitude']),
+      selectedLongitude: _toDouble(data['selectedLongitude']),
+
+      distance: data['distance']?.toString() ?? '0',
+      paymentmethod: data['paymentmethod']?.toString() ?? 'Unknown',
+
+      totalAmountToPay: _toDouble(data['totalAmountToPay']),
+
+      fcmToken: data['fcm_token']?.toString() ?? '',
+      status: data['status']?.toString() ?? 'Pending',
+
+      orderItems: _toList(data['orderItems']),
+
+      cookinginstrcutions: data['cookinginstrcutions']?.toString() ?? '',
+      selectedSlot: data['selectedSlot']?.toString() ?? '',
     );
   }
 }
@@ -86,10 +105,11 @@ class OrderNotifier extends StateNotifier<Order?> {
 }
 
 final orderProvider = StateNotifierProvider<OrderNotifier, Order?>((ref) {
-  DatabaseReference databaseRef = FirebaseDatabase.instanceFor(
-          app: Firebase.app(),
-          databaseURL: "https://kealthy-90c55-dd236.firebaseio.com/")
-      .ref();
+  DatabaseReference databaseRef =
+      FirebaseDatabase.instanceFor(
+        app: Firebase.app(),
+        databaseURL: "https://kealthy-90c55-dd236.firebaseio.com/",
+      ).ref();
   return OrderNotifier(databaseRef);
 });
 

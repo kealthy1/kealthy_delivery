@@ -18,6 +18,7 @@ void main() async {
 
   await requestPermissions();
   await NotificationService.instance.initialize();
+
   final permissionService = PermissionService();
   permissionService.requestPermissions();
   final listenForOrderAssignments = PermissionService();
@@ -36,6 +37,7 @@ void main() async {
     );
     // return;
   }
+  await initializeService();
 
   // final isOverlayGranted = await overlayService.requestOverlay();
   // if (!isOverlayGranted) {

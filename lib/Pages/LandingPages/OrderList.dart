@@ -4,6 +4,8 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:kealthy_delivery/Pages/Login/login_page.dart';
+import 'package:kealthy_delivery/Pages/Order/MyOrders.dart' hide Order;
 import 'package:kealthy_delivery/Pages/Pick/PickOrder.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../Riverpod/Loading.dart';
@@ -11,6 +13,8 @@ import '../../Services/Location_off_exit.dart';
 import '../Deliver/Deliver.dart';
 import '../Order/OrderItem.dart';
 import '../Reach/Mark_Reached.dart';
+
+enum _OverflowAction { logout }
 
 class OrdersAssignedPage extends ConsumerStatefulWidget {
   const OrdersAssignedPage({super.key});
@@ -33,6 +37,7 @@ class _OrdersAssignedPageState extends ConsumerState<OrdersAssignedPage> {
           .read(locationServiceProvider.notifier)
           .checkLocationAndShowAlert(context);
     });
+    
   }
 
   Future<void> _handleOrderTap(Order order) async {
@@ -66,7 +71,8 @@ class _OrdersAssignedPageState extends ConsumerState<OrdersAssignedPage> {
 
         final updatedOrder = Order.fromMap(order.orderId, updatedOrderData);
 
-        // Navigate based on status
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('orderId', updatedOrder.orderId);
         _navigateBasedOnStatus(updatedOrder);
       } else {
         _showSnackBar('Order no longer exists.');
@@ -89,6 +95,15 @@ class _OrdersAssignedPageState extends ConsumerState<OrdersAssignedPage> {
         targetPage = ReachNow(orderId: updatedOrder.orderId);
         break;
       case 'Order Placed':
+        targetPage = pickorder(orderId: updatedOrder.orderId);
+        break;
+      case 'Order Confirmed':
+        targetPage = pickorder(orderId: updatedOrder.orderId);
+        break;
+      case 'Order Packed':
+        targetPage = pickorder(orderId: updatedOrder.orderId);
+        break;
+      case 'Prepared':
         targetPage = pickorder(orderId: updatedOrder.orderId);
         break;
       default:
@@ -116,6 +131,68 @@ class _OrdersAssignedPageState extends ConsumerState<OrdersAssignedPage> {
         title: Text('Assigned Orders', style: GoogleFonts.poppins()),
         backgroundColor: Colors.white,
         elevation: 0,
+        actions: [
+          Tooltip(
+            message: 'Logout',
+            child: PopupMenuButton<_OverflowAction>(
+              icon: const Icon(Icons.power_settings_new, color: Colors.black),
+              itemBuilder:
+                  (context) => const [
+                    PopupMenuItem<_OverflowAction>(
+                      value: _OverflowAction.logout,
+                      child: Text('Logout'),
+                    ),
+                  ],
+              onSelected: (value) async {
+                if (value == _OverflowAction.logout) {
+                  final confirmed =
+                      await showCupertinoDialog<bool>(
+                        context: context,
+                        builder:
+                            (ctx) => CupertinoAlertDialog(
+                              title: const Text('Logout'),
+                              content: const Text('Do you want to logout?'),
+                              actions: [
+                                CupertinoDialogAction(
+                                  onPressed: () async {
+                                    final prefs =
+                                        await SharedPreferences.getInstance();
+                                    final savedOrderId =
+                                        prefs.getString('orderId') ?? '';
+                                    print('savedOrderId--$savedOrderId');
+                                    await ref
+                                        .read(ordersProvider.notifier)
+                                        .checkPaymentStatus(savedOrderId);
+                                    Navigator.of(ctx).pop(false);
+                                  },
+                                  child: const Text('Cancel'),
+                                ),
+                                CupertinoDialogAction(
+                                  isDestructiveAction: true,
+                                  onPressed: () => Navigator.of(ctx).pop(true),
+                                  child: const Text('Logout'),
+                                ),
+                              ],
+                            ),
+                      ) ??
+                      false;
+
+                  if (confirmed) {
+                    SharedPreferences prefs =
+                        await SharedPreferences.getInstance();
+                    await prefs.clear();
+                    Navigator.pushReplacement(
+                      context,
+                      CupertinoModalPopupRoute(
+                        builder: (context) => const LoginFields(),
+                      ),
+                    );
+                  }
+                }
+              },
+            ),
+          ),
+        ],
       ),
       backgroundColor: Colors.white,
       body: RefreshIndicator(
@@ -157,7 +234,7 @@ class _OrdersAssignedPageState extends ConsumerState<OrdersAssignedPage> {
                 final order = orders[index];
                 return GestureDetector(
                   onTap:
-                      () => _handleOrderTap(order), // Moved logic to a helper
+                      () => _handleOrderTap(order), 
                   child: _buildOrderTile(order),
                 );
               },
@@ -242,40 +319,63 @@ class _OrdersAssignedPageState extends ConsumerState<OrdersAssignedPage> {
   }
 
   Future<List<Order>> fetchOrderDataByAssignedTo() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    final String? assignedId = prefs.getString('ID');
+    final prefs = await SharedPreferences.getInstance();
+    final assignedIdStr = prefs.getString('ID')?.trim();
 
-    if (assignedId == null) {
-      // Return empty rather than throwing to avoid the "Error" UI state
-      return [];
-    }
+    if (assignedIdStr == null || assignedIdStr.isEmpty) return [];
 
-    final DatabaseReference orderRef = FirebaseDatabase.instanceFor(
+    final orderRef = FirebaseDatabase.instanceFor(
       app: Firebase.app(),
       databaseURL: 'https://kealthy-90c55-dd236.firebaseio.com/',
     ).ref('orders');
 
     try {
-      Query query = orderRef.orderByChild('assignedto').equalTo(assignedId);
-      DatabaseEvent event = await query.once();
+      final results = <String, Map<dynamic, dynamic>>{};
 
-      if (event.snapshot.value != null) {
-        Map<dynamic, dynamic> data = event.snapshot.value as Map;
-        return data.entries
-            .map(
-              (entry) => Order.fromMap(
-                entry.key,
-                Map<dynamic, dynamic>.from(entry.value),
-              ),
-            )
-            .toList();
+      final e1 =
+          await orderRef
+              .orderByChild('assignedto')
+              .equalTo(assignedIdStr)
+              .once();
+      if (e1.snapshot.value != null) {
+        final m = Map<dynamic, dynamic>.from(e1.snapshot.value as Map);
+        for (final entry in m.entries) {
+          if (entry.value is Map) {
+            final raw = Map<dynamic, dynamic>.from(entry.value as Map);
+
+            results[entry.key.toString()] = raw.map(
+              (k, v) => MapEntry(k, v?.toString()),
+            );
+          }
+        }
       }
 
-      // If snapshot is null, return empty list
-      return [];
+      // 2) Query as int
+      final assignedIdInt = int.tryParse(assignedIdStr);
+      if (assignedIdInt != null) {
+        final e2 =
+            await orderRef
+                .orderByChild('assignedto')
+                .equalTo(assignedIdInt)
+                .once();
+
+        if (e2.snapshot.value != null) {
+          final m = Map<dynamic, dynamic>.from(e2.snapshot.value as Map);
+          for (final entry in m.entries) {
+            if (entry.value is Map) {
+              final raw = Map<dynamic, dynamic>.from(entry.value as Map);
+
+              results[entry.key.toString()] = raw.map(
+                (k, v) => MapEntry(k, v?.toString()),
+              );
+            }
+          }
+        }
+      }
+
+      return results.entries.map((e) => Order.fromMap(e.key, e.value)).toList();
     } catch (e) {
-      print('Error fetching order data: $e');
-      // Still return empty list or handle specific errors here
+      debugPrint('Error fetching order data: $e');
       return [];
     }
   }

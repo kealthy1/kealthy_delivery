@@ -48,7 +48,7 @@ class OrdersNotifier extends StateNotifier<List<Order>> {
 
   Future<void> checkPaymentStatus(String orderId) async {
     try {
-     // orderId = '22334445566';
+      // orderId = '22334445566';
       //state = state.copyWith(isCheckingStatus: true);
       final response = await http.get(
         Uri.parse('https://api-jfnhkjk4nq-uc.a.run.app/payment/order/$orderId'),
@@ -57,7 +57,6 @@ class OrdersNotifier extends StateNotifier<List<Order>> {
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-        print('data---$data');
         if (data != null &&
             data['success'] == true &&
             data['payments'] != null &&

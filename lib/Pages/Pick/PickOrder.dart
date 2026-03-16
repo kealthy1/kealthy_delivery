@@ -12,7 +12,7 @@ final isCodConfirmedProvider = StateProvider<bool>((ref) => false);
 class pickorder extends ConsumerStatefulWidget {
   final String orderId;
 
-  const pickorder({super.key, required this.orderId});
+  const   pickorder({super.key, required this.orderId});
 
   @override
   _OrderDetailsPageState createState() => _OrderDetailsPageState();

@@ -89,6 +89,7 @@ class PaymentNotifier extends StateNotifier<PaymentState> {
 
   Future<void> createQRCode(double amount) async {
     try {
+      // Reset state + mark loading
       state = state.copyWith(
         orderId: '',
         qrCodeUrl: '',
@@ -96,53 +97,87 @@ class PaymentNotifier extends StateNotifier<PaymentState> {
         isCaptured: false,
         isCreatingQRCode: true,
       );
+
+      // Clear persisted values (optional but matches your current behavior)
       final prefs = await SharedPreferences.getInstance();
       await prefs.remove('orderId');
       await prefs.remove('qrCodeUrl');
       await prefs.remove('qrId');
       await prefs.remove('qrTimestamp');
 
-      final response = await http.post(
-        Uri.parse('https://razor-pay-kappa-two.vercel.app/api/qr/create'),
-        headers: {'Content-Type': 'application/json'},
-        body: json.encode({'amount': amount}),
+      final uri = Uri.parse(
+        'https://api-jfnhkjk4nq-uc.a.run.app/create-qr-code',
       );
 
-      if (response.statusCode == 200) {
-        final Map<String, dynamic> decodedResponse = json.decode(response.body);
+      final response = await http.post(
+        uri,
+        headers: {'Content-Type': 'application/json'},
+        // API expects: { "payment_amount": 199 }
+        body: jsonEncode({'payment_amount': amount}),
+      );
 
-        if (decodedResponse['success'] == true &&
-            decodedResponse['orderId'] != null &&
-            decodedResponse['image_url'] != null &&
-            decodedResponse['id'] != null) {
-          final orderId = decodedResponse['orderId'];
-          final qrCodeUrl = decodedResponse['image_url'];
-          final qrId = decodedResponse['id'];
-
-          await _saveToSharedPreferences(orderId, qrCodeUrl, qrId);
-          state = state.copyWith(
-            orderId: orderId,
-            qrCodeUrl: qrCodeUrl,
-            qrId: qrId,
-            isCreatingQRCode: false,
-            isCaptured: false,
-          );
-          print('QR Code created successfully with Order ID: $orderId');
-        } else {
-          state = state.copyWith(isCreatingQRCode: false);
-          print(
-            'Error: orderId, image_url, or id is missing in the response data',
-          );
-        }
-      } else {
+      if (response.statusCode != 200) {
         state = state.copyWith(isCreatingQRCode: false);
-        print(
-          'Failed to create QR code. Status code: ${response.statusCode}, Response: ${response.body}',
+        debugPrint(
+          'Failed to create QR code. Status: ${response.statusCode}, Body: ${response.body}',
         );
+        return;
       }
-    } catch (e) {
+
+      final Map<String, dynamic> decoded = jsonDecode(response.body);
+
+      // Expected response:
+      // {
+      //   "success": true,
+      //   "data": {
+      //     "id": "...",
+      //     "qrCodeUrl": "...",
+      //     "orderId": "...",
+      //     "amount": 199,
+      //     "created_at": "..."
+      //   }
+      // }
+      final bool success = decoded['success'] == true;
+      final Map<String, dynamic>? data =
+          decoded['data'] is Map
+              ? Map<String, dynamic>.from(decoded['data'])
+              : null;
+
+      if (!success || data == null) {
+        state = state.copyWith(isCreatingQRCode: false);
+        debugPrint('Invalid response shape: $decoded');
+        return;
+      }
+
+      final String? orderId = data['orderId']?.toString();
+      final String? qrCodeUrl = data['qrCodeUrl']?.toString();
+      final String? qrId = data['id']?.toString();
+
+      if (orderId == null ||
+          orderId.isEmpty ||
+          qrCodeUrl == null ||
+          qrCodeUrl.isEmpty ||
+          qrId == null ||
+          qrId.isEmpty) {
+        state = state.copyWith(isCreatingQRCode: false);
+        debugPrint('Missing fields in response data: $data');
+        return;
+      }
+
+      await _saveToSharedPreferences(orderId, qrCodeUrl, qrId);
+
+      state = state.copyWith(
+        orderId: orderId,
+        qrCodeUrl: qrCodeUrl,
+        qrId: qrId,
+        isCreatingQRCode: false,
+        isCaptured: false,
+      );
+
+      debugPrint('QR Code created successfully with Order ID: $orderId');
+    } catch (e, st) {
       state = state.copyWith(isCreatingQRCode: false);
-      print('Error while creating QR code: $e');
+      debugPrint('Error while creating QR code: $e\n$st');
     }
   }
 
@@ -171,41 +206,54 @@ class PaymentNotifier extends StateNotifier<PaymentState> {
   Future<void> checkPaymentStatus(String qrId) async {
     try {
       state = state.copyWith(isCheckingStatus: true);
+
       final response = await http.post(
-        Uri.parse('https://razor-pay-kappa-two.vercel.app/api/qr/check'),
+        Uri.parse('https://api-jfnhkjk4nq-uc.a.run.app/check-qr-payment'),
         headers: {'Content-Type': 'application/json'},
-        body: json.encode({'id': qrId}),
+        body: jsonEncode({
+          'qrId': qrId, 
+        }),
       );
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        if (data != null &&
-            data['success'] == true &&
-            data['paid'] == true &&
-            data['status'] == 'captured') {
-          state = state.copyWith(isCaptured: true, isCheckingStatus: false);
-          print('Payment captured for QR ID: $qrId');
-          final prefs = await SharedPreferences.getInstance();
-          await prefs.setString('paymentStatus', 'Yes');
-          await prefs.remove('orderId');
-          await prefs.remove('qrCodeUrl');
-          await prefs.remove('qrId');
-          await prefs.remove('qrTimestamp');
-          print(
-            'Cleared orderId, qrCodeUrl, qrId, and timestamp from SharedPreferences',
-          );
-        } else {
-          state = state.copyWith(isCheckingStatus: false);
-          print('Payment not yet captured for QR ID: $qrId');
-        }
-      } else {
+
+      if (response.statusCode != 200) {
         state = state.copyWith(isCheckingStatus: false);
-        print(
-          'Failed to fetch payment status: $qrId, Status code: ${response.statusCode}, Response: ${response.body}',
+        debugPrint(
+          'Failed to fetch payment status. '
+          'Status: ${response.statusCode}, Body: ${response.body}',
         );
+        return;
       }
-    } catch (e) {
+
+      final Map<String, dynamic> data = jsonDecode(response.body);
+
+      final bool success = data['success'] == true;
+      final bool paid = data['paid'] == true;
+      final String? status = data['status']?.toString();
+
+      if (success && paid && status == 'captured') {
+        state = state.copyWith(isCaptured: true, isCheckingStatus: false);
+
+        print('Payment captured for QR ID: $qrId');
+
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('paymentStatus', 'Yes');
+        await prefs.remove('orderId');
+        await prefs.remove('qrCodeUrl');
+        await prefs.remove('qrId');
+        await prefs.remove('qrTimestamp');
+
+        print(
+          'Cleared orderId, qrCodeUrl, qrId, and timestamp from SharedPreferences',
+        );
+      } else {
+        // 🔒 FORCE reset – prevents false success GIF
+        state = state.copyWith(isCaptured: false, isCheckingStatus: false);
+
+        print('Payment not yet captured for QR ID: $qrId');
+      }
+    } catch (e, st) {
       state = state.copyWith(isCheckingStatus: false);
-      print('Error while fetching payment status: $e');
+      debugPrint('Error while checking payment status: $e\n$st');
     }
   }
 

@@ -57,8 +57,8 @@ class DefaultFirebaseOptions {
     appId: '1:486140167563:android:c0a10413ebf5d7bdae5b8e',
     messagingSenderId: '486140167563',
     projectId: 'kealthy-90c55',
-    databaseURL: 'https://kealthy-90c55-default-rtdb.asia-southeast1.firebasedatabase.app',
+    databaseURL:
+        'https://kealthy-90c55-dd236.firebaseio.com.asia-southeast1.firebasedatabase.app',
     storageBucket: 'kealthy-90c55.appspot.com',
   );
-
 }

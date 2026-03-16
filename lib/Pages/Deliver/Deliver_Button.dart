@@ -162,7 +162,7 @@ class DeliverNowButton extends ConsumerWidget {
     StateController<bool> isLoadingNotifier,
   ) async {
     try {
-      await orderService.updateOrderStatus(order.orderId, 'Order Delivered');
+    //  await orderService.updateOrderStatus(order.orderId, 'Order Delivered');
       try {
         await notificationService.sendNotification(
           fcmToken: order.fcmToken,

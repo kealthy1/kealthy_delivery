@@ -14,10 +14,7 @@ final isLoadingProvider = StateProvider<bool>((ref) => false);
 class ReachNowButton extends ConsumerWidget {
   final Order order;
 
-  const ReachNowButton({
-    super.key,
-    required this.order,
-  });
+  const ReachNowButton({super.key, required this.order});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -30,47 +27,55 @@ class ReachNowButton extends ConsumerWidget {
     final NotificationService notificationService =
         NotificationService.instance;
 
-    return Align(
-      alignment: Alignment.bottomCenter,
-      child: Padding(
-        padding: const EdgeInsets.all(8.0),
-        child: isLoading
-            ? const Center(
-                child: CircularProgressIndicator(
-                  color: Color(0xFF273847),
-                ),
-              )
-            : SizedBox(
-                height: 50,
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF273847),
-                  ),
-                  onPressed: () async {
-                    ConfirmationBottomSheet.show(
-                      context: context,
-                      title: 'Confirm Action',
-                      message: 'Are you sure you want to mark this order as reached?',
-                      onConfirm: () async {
-                        isLoadingNotifier.state = true;
-                        await _handleMarkAsReached(context, ref, order, orderService, notificationService);
+    return SafeArea(
+      child: Align(
+        alignment: Alignment.bottomCenter,
+        child: Padding(
+          padding: const EdgeInsets.all(8.0),
+          child:
+              isLoading
+                  ? const Center(
+                    child: CircularProgressIndicator(color: Color(0xFF273847)),
+                  )
+                  : SizedBox(
+                    height: 50,
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF273847),
+                      ),
+                      onPressed: () async {
+                        ConfirmationBottomSheet.show(
+                          context: context,
+                          title: 'Confirm Action',
+                          message:
+                              'Are you sure you want to mark this order as reached?',
+                          onConfirm: () async {
+                            isLoadingNotifier.state = true;
+                            await _handleMarkAsReached(
+                              context,
+                              ref,
+                              order,
+                              orderService,
+                              notificationService,
+                            );
+                          },
+                          onCancel: () {
+                            Navigator.pop(context);
+                          },
+                        );
                       },
-                      onCancel: () {
-                        Navigator.pop(context); 
-                      },
-                    );
-                  },
-                  child: Center(
-                    child: Text(
-                      'Reached Drop',
-                      style: GoogleFonts.poppins(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w300,
+                      child: Center(
+                        child: Text(
+                          'Reached Drop',
+                          style: GoogleFonts.poppins(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w300,
+                          ),
+                        ),
                       ),
                     ),
                   ),
-                ), 
-              ),
+        ),
       ),
     );
   }
@@ -91,14 +96,10 @@ class ReachNowButton extends ConsumerWidget {
 
     try {
       Navigator.of(context).pushReplacement(
-        MaterialPageRoute(
-          builder: (context) => DeliverNow(order: order),
-        ),
+        MaterialPageRoute(builder: (context) => DeliverNow(order: order)),
       );
 
-      unawaited(
-        orderService.updateOrderStatus(order.orderId, 'Order Reached'),
-      );
+      unawaited(orderService.updateOrderStatus(order.orderId, 'Order Reached'));
 
       unawaited(
         notificationService.sendNotification(
@@ -110,9 +111,9 @@ class ReachNowButton extends ConsumerWidget {
       );
     } catch (e) {
       print('Error: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error: $e')));
     } finally {
       if (context.mounted) {
         isLoadingNotifier.state = false;

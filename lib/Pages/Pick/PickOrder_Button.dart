@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../Reusable.dart/Bottomsheet.dart';
 import '../../Riverpod/NotificationService.dart';
 import '../../Services/OrderService.dart';
@@ -19,9 +20,9 @@ class PickButton extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final isLoading = ref.watch(isLoadingProvider);
 
-    return Align(
-      alignment: Alignment.bottomCenter,
-      child: SafeArea(
+    return SafeArea(
+      child: Align(
+        alignment: Alignment.bottomCenter,
         child: Padding(
           padding: const EdgeInsets.all(8.0),
           child: SizedBox(
@@ -87,6 +88,8 @@ class PickButton extends ConsumerWidget {
           builder: (context) => ReachNow(orderId: order.orderId),
         ),
       );
+      final SharedPreferences prefs = await SharedPreferences.getInstance();
+      await prefs.setString('orderId', order.orderId);
 
       unawaited(orderService.updateOrderStatus(order.orderId, 'Order Picked'));
 
