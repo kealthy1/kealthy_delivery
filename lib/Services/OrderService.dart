@@ -6,10 +6,10 @@ class OrderService {
   final DatabaseReference ordersRef;
 
   OrderService(String databaseUrl)
-      : ordersRef = FirebaseDatabase.instanceFor(
-          app: Firebase.app(),
-          databaseURL: databaseUrl,
-        ).ref('orders');
+    : ordersRef = FirebaseDatabase.instanceFor(
+        app: Firebase.app(),
+        databaseURL: databaseUrl,
+      ).ref('orders');
 
   Future<void> updateOrderStatus(String orderId, String status) async {
     final DatabaseReference orderRef = ordersRef.child(orderId);
@@ -46,10 +46,4 @@ class OrderService {
 
     return orders;
   }
-
-
-
-  
-
-
 }

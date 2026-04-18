@@ -13,10 +13,7 @@ final DeliverisLoadingProvider = StateProvider<bool>((ref) => false);
 class DeliverNowButton extends ConsumerWidget {
   final Order order;
 
-  const DeliverNowButton({
-    super.key,
-    required this.order,
-  });
+  const DeliverNowButton({super.key, required this.order});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -44,15 +41,16 @@ class DeliverNowButton extends ConsumerWidget {
                 if (order.paymentmethod != 'Cash on Delivery') {
                   await prefs.setString('paymentStatus', 'No');
                 }
-      
+
                 showDialog(
                   context: context,
-                  builder: (_) => _buildAlertLog(
-                    context: context,
-                    isLoadingNotifier: isLoadingNotifier,
-                    orderService: orderService,
-                    notificationService: notificationService,
-                  ),
+                  builder:
+                      (_) => _buildAlertLog(
+                        context: context,
+                        isLoadingNotifier: isLoadingNotifier,
+                        orderService: orderService,
+                        notificationService: notificationService,
+                      ),
                 );
               },
               child: const Center(
@@ -82,55 +80,61 @@ class DeliverNowButton extends ConsumerWidget {
         final isLoading = ref.watch(DeliverisLoadingProvider);
 
         return AlertDialog(
-          title: isLoading
-              ? const Center(
-                  child: CircularProgressIndicator(
-                    color: Color(0xFF273847),
-                  ),
-                )
-              : const Center(
-                  child: Text(
-                    "Delivery Confirmation",
-                    style: TextStyle(fontSize: 25, fontFamily: "poppins"),
-                  ),
-                ),
-          content: isLoading
-              ? null
-              : const Text(
-                  "Do you want to mark this order delivered?",
-                  style: TextStyle(fontFamily: "poppins"),
-                ),
-          actions: isLoading
-              ? []
-              : [
-                  TextButton(
-                    onPressed: () {
-                      Navigator.of(context).pop();
-                    },
-                    child: const Text(
-                      'Cancel',
-                      style:
-                          TextStyle(color: Colors.black, fontFamily: "poppins"),
+          title:
+              isLoading
+                  ? const Center(
+                    child: CircularProgressIndicator(color: Color(0xFF273847)),
+                  )
+                  : const Center(
+                    child: Text(
+                      "Delivery Confirmation",
+                      style: TextStyle(fontSize: 25, fontFamily: "poppins"),
                     ),
                   ),
-                  TextButton(
-                    onPressed: () {
-                      ref.read(DeliverisLoadingProvider.notifier).state = true;
-                      _deliverOrder(
-                        orderService,
-                        notificationService,
-                        order,
-                        context,
-                        ref.read(DeliverisLoadingProvider.notifier),
-                      );
-                    },
-                    child: const Text(
-                      'OK',
-                      style:
-                          TextStyle(color: Colors.black, fontFamily: "poppins"),
-                    ),
+          content:
+              isLoading
+                  ? null
+                  : const Text(
+                    "Do you want to mark this order delivered?",
+                    style: TextStyle(fontFamily: "poppins"),
                   ),
-                ],
+          actions:
+              isLoading
+                  ? []
+                  : [
+                    TextButton(
+                      onPressed: () {
+                        Navigator.of(context).pop();
+                      },
+                      child: const Text(
+                        'Cancel',
+                        style: TextStyle(
+                          color: Colors.black,
+                          fontFamily: "poppins",
+                        ),
+                      ),
+                    ),
+                    TextButton(
+                      onPressed: () {
+                        ref.read(DeliverisLoadingProvider.notifier).state =
+                            true;
+                        _deliverOrder(
+                          orderService,
+                          notificationService,
+                          order,
+                          context,
+                          ref.read(DeliverisLoadingProvider.notifier),
+                        );
+                      },
+                      child: const Text(
+                        'OK',
+                        style: TextStyle(
+                          color: Colors.black,
+                          fontFamily: "poppins",
+                        ),
+                      ),
+                    ),
+                  ],
         );
       },
     );
@@ -162,7 +166,7 @@ class DeliverNowButton extends ConsumerWidget {
     StateController<bool> isLoadingNotifier,
   ) async {
     try {
-    //  await orderService.updateOrderStatus(order.orderId, 'Order Delivered');
+      //  await orderService.updateOrderStatus(order.orderId, 'Order Delivered');
       try {
         await notificationService.sendNotification(
           fcmToken: order.fcmToken,
@@ -174,18 +178,18 @@ class DeliverNowButton extends ConsumerWidget {
         print('Notification failed: $notificationError');
       }
       if (context.mounted) {
-      Navigator.of(context).pushAndRemoveUntil(
-  MaterialPageRoute(
-    builder: (_) => OrderConfirmationScreen(
-      orderNumber: order.orderId,
-      totalAmount: order.totalAmountToPay,
-      distance: order.distance,
-      orderStatus: 'Order Delivered',
-    ),
-  ),
-  (_) => false,
-);
-
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(
+            builder:
+                (_) => OrderConfirmationScreen(
+                  orderNumber: order.orderId,
+                  totalAmount: order.totalAmountToPay,
+                  distance: order.distance,
+                  orderStatus: 'Order Delivered',
+                ),
+          ),
+          (_) => false,
+        );
       }
     } catch (e) {
       print('Error: $e');

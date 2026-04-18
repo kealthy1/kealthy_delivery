@@ -17,7 +17,6 @@ import 'package:firebase_core/firebase_core.dart';
 
 Future<void> initializeService() async {
   final service = FlutterBackgroundService();
-  print('Initializing background service...');
   await service.configure(
     androidConfiguration: AndroidConfiguration(
       onStart: onStart,

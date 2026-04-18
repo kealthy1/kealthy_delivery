@@ -210,9 +210,7 @@ class PaymentNotifier extends StateNotifier<PaymentState> {
       final response = await http.post(
         Uri.parse('https://api-jfnhkjk4nq-uc.a.run.app/check-qr-payment'),
         headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'qrId': qrId, 
-        }),
+        body: jsonEncode({'qrId': qrId}),
       );
 
       if (response.statusCode != 200) {
@@ -371,7 +369,7 @@ class _ConfirmationButtonState extends ConsumerState<ConfirmationButton> {
   @override
   void dispose() {
     _statusCheckTimer?.cancel();
-    ref.read(paymentProvider.notifier).clearSharedPreferences();
+    //ref.read(paymentProvider.notifier).clearSharedPreferences();
     super.dispose();
   }
 

@@ -37,7 +37,7 @@ void main() async {
     );
     // return;
   }
-  await initializeService();
+  //await initializeService();
 
   // final isOverlayGranted = await overlayService.requestOverlay();
   // if (!isOverlayGranted) {
